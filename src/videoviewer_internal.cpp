@@ -67,6 +67,7 @@ VideoViewer_Internal::VideoViewer_Internal()
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
+   glfwTerminate();
 }
 
 void VideoViewer_Internal::PrintGLError(const char* stmt, const char* fname, int line)
@@ -466,6 +467,16 @@ bool VideoViewer_Internal::window_set_title(const char* title)
    if (m_window)
    {
       GLFW_CHECK(glfwSetWindowTitle(m_window, title));
+      return true;
+   }
+
+   return false;
+}
+
+bool Deltacast::VideoViewer_Internal::destroy_window()
+{
+   if(m_window){
+      GLFW_CHECK(glfwDestroyWindow(m_window));
       return true;
    }
 

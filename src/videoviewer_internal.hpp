@@ -39,6 +39,7 @@ namespace Deltacast
       void unlock_data();
       bool window_request_close();
       bool window_set_title(const char* title);
+      bool destroy_window();
 
    private:
       bool create_window(int width, int height, const char* title, const bool is_invisible);
