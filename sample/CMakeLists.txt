@@ -8,7 +8,7 @@ target_sources(videoviewer_sample PRIVATE
 	colorbar.cpp
 )
 
-target_link_libraries(videoviewer_sample PRIVATE videoviewer)
+target_link_libraries(videoviewer_sample PRIVATE video-viewer)
 
 if(UNIX)
 	target_sources(videoviewer_sample PRIVATE

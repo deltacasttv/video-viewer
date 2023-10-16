@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_library(videoviewer STATIC)
+add_library(video-viewer STATIC)
 
 find_package(glfw3 REQUIRED)
 if(TARGET glfw::glfw)
-	target_link_libraries(videoviewer PUBLIC glfw::glfw)
+	target_link_libraries(video-viewer PUBLIC glfw::glfw)
 else()
 	message(FATAL_ERROR "The target glfw::glfw was not found.")
 endif()
@@ -25,7 +25,7 @@ find_package(Python COMPONENTS Interpreter REQUIRED)
 message("Executing gl3w_gen.py")
 execute_process(COMMAND "${PYTHON_EXECUTABLE}" ${gl3w_SOURCE_DIR}/gl3w_gen.py WORKING_DIRECTORY ${gl3w_BINARY_DIR})
 
-target_sources(videoviewer PRIVATE
+target_sources(video-viewer PRIVATE
 	${PROJECT_SOURCE_DIR}/src/videoviewer_internal.cpp
 	${PROJECT_SOURCE_DIR}/src/videoviewer_internal.hpp
 	${PROJECT_SOURCE_DIR}/src/videoviewer.cpp
@@ -39,25 +39,25 @@ target_sources(videoviewer PRIVATE
 	${gl3w_BINARY_DIR}/src/gl3w.c
  )
 
-target_include_directories(videoviewer
+target_include_directories(video-viewer
    PUBLIC "${gl3w_BINARY_DIR}/include"
    PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
 
 if(UNIX)
-	target_link_libraries(videoviewer PUBLIC
+	target_link_libraries(video-viewer PUBLIC
 		dl
 		pthread
 	)
 endif()
 
-target_compile_features(videoviewer PUBLIC cxx_std_11)
-set_target_properties(videoviewer PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_features(video-viewer PUBLIC cxx_std_11)
+set_target_properties(video-viewer PROPERTIES CXX_EXTENSIONS OFF)
 
-set_target_properties(videoviewer PROPERTIES PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/videoviewer/videoviewer.h)
-set_target_properties(videoviewer PROPERTIES DEBUG_POSTFIX d)
+set_target_properties(video-viewer PROPERTIES PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/videoviewer/videoviewer.h)
+set_target_properties(video-viewer PROPERTIES DEBUG_POSTFIX d)
 
-install(TARGETS videoviewer DESTINATION "."
+install(TARGETS video-viewer DESTINATION "."
         PUBLIC_HEADER DESTINATION "include/videoviewer"
         RUNTIME DESTINATION bin
         ARCHIVE DESTINATION lib
