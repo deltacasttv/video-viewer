@@ -21,7 +21,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(gl3w)
 
 
-find_package (Python COMPONENTS Interpreter REQUIRED)
+find_package(Python COMPONENTS Interpreter REQUIRED)
 message("Executing gl3w_gen.py")
 execute_process(COMMAND "${PYTHON_EXECUTABLE}" ${gl3w_SOURCE_DIR}/gl3w_gen.py WORKING_DIRECTORY ${gl3w_BINARY_DIR})
 
