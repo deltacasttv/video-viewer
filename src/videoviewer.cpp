@@ -48,7 +48,10 @@ bool Deltacast::VideoViewer::init(int window_width, int window_height, const cha
 
 bool Deltacast::VideoViewer::release()
 {
-   return gl_video_viewer.release();
+   bool result_release = gl_video_viewer.release();
+   bool result_destroy = gl_video_viewer.destroy_window();
+
+   return result_release && result_destroy;
 }
 
 bool Deltacast::VideoViewer::render_loop(int frame_rate_in_ms)
