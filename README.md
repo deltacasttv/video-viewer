@@ -2,7 +2,9 @@
 
 Video monitoring module that manages to create a window with OpenGL context that displays incoming video data.
 
-OS Support: Windows and Linux
+OS Support: Windows and Linux.
+
+See https://www.deltacast.tv for more video products.
 
 ## How to build
 
