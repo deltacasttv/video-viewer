@@ -1,3 +1,8 @@
+## 1.0.1
+
+### Added
+- Git describe version protection [Issue #7]
+
 ## 1.0.0
 
 ### Added
