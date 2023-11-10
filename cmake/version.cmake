@@ -8,7 +8,7 @@ function(git_version _var)
 			ERROR_QUIET
 			OUTPUT_STRIP_TRAILING_WHITESPACE)
 		
-		if(ret AND NOT ret EQUAL 0)
+		if(ret)
 			set(${_var}
 			"0.0.0"
 			PARENT_SCOPE)
