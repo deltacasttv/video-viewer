@@ -1,3 +1,8 @@
+## 1.0.2
+
+### Added
+- Fix wrong operands types in shader [Issue #11]
+
 ## 1.0.1
 
 ### Added
