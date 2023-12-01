@@ -22,7 +22,7 @@ constexpr char const * compute_shader_422_8 =
 "void main() {\n"
 "    ivec2 coords = ivec2(gl_GlobalInvocationID);\n"
 "    vec4 uyvy = imageLoad(img_input, ivec2(coords.x / 2, coords.y));\n"
-"    bool odd_column = (mod(coords.x, 2.0) >= 1.0);\n"
+"    bool odd_column = (mod(coords.x, 2) >= 1.0);\n"
 "    vec4 yuvk;\n"
 "    yuvk.x = (float(!odd_column)) * uyvy.y + (float(odd_column)) * uyvy.w;\n"
 "    yuvk.y = uyvy.x;\n"
