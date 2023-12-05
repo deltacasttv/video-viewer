@@ -1,3 +1,8 @@
+## Unreleased
+
+### Added
+- Add support BGR 4:4:4 8bits
+
 ## 1.0.2
 
 ### Added
