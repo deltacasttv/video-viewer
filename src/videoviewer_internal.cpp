@@ -67,7 +67,7 @@ void VideoViewer_Internal::PrintGLError(GLenum error, const char* stmt, const ch
    std::cout << "Opengl error: " << error << " [" << stmt  << "]" << "in file " << fname << " @ line " << line << std::endl;
 }
 
-void VideoViewer_Internal::PrintGLFWError(int code, const char *description, const char* stmt, const char* fname, int line)
+void VideoViewer_Internal::PrintGLFWError(int code, const char* description, const char* stmt, const char* fname, int line)
 {
       std::cout << "GLFW error: " << code << " [" << stmt  << "]" << "in file " << fname << " @ line " << line;
 
@@ -522,7 +522,7 @@ bool VideoViewer_Internal::lock_data(uint8_t** data, uint64_t* size)
 
    if (m_window)
    {
-      if (!GLFW_CHECK(glfwWindowShouldClose, m_window))
+      if (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value)
       {
          *size = m_pbo_size;
 

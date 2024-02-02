@@ -58,7 +58,7 @@ namespace Deltacast
       static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
       static void compileShader(GLuint shaderID, const char* sourcePointer);
       static void PrintGLError(GLenum error, const char* stmt, const char* fname, int line);
-      static void PrintGLFWError(int code, const char *description, const char* stmt, const char* fname, int line);
+      static void PrintGLFWError(int code, const char* description, const char* stmt, const char* fname, int line);
 
       GLFWwindow* m_window{nullptr};
       GLuint m_texture_in{0};
