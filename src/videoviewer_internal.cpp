@@ -37,10 +37,10 @@
 #define SLEEP(frame_rate_in_ms) usleep(frame_rate_in_ms * 1000);
 #endif
 
-#define GL_CHECK(func, ...) gl_check(__FILE__, __LINE__, #func, func, __VA_ARGS__)
-#define GLFW_CHECK(func, ...) glfw_check(__FILE__, __LINE__, #func, func, __VA_ARGS__)
-#define GL_CHECK_OUTPUT(func, ...) gl_check_output(__FILE__, __LINE__, #func, func, __VA_ARGS__)
-#define GLFW_CHECK_OUTPUT(func, ...) glfw_check_output(__FILE__, __LINE__, #func, func, __VA_ARGS__)
+#define GL_CHECK(func, ...) gl_check(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
+#define GLFW_CHECK(func, ...) glfw_check(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
+#define GL_CHECK_OUTPUT(func, ...) gl_check_output(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
+#define GLFW_CHECK_OUTPUT(func, ...) glfw_check_output(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
 
 using namespace Deltacast;
 
