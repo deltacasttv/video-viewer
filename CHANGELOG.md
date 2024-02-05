@@ -1,3 +1,8 @@
+## 1.1.1
+
+### Fixes
+- Improve GL_CHECK and GLFW_CHECK macros to support conditional statements
+
 ## 1.1.0
 
 ### Added
