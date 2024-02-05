@@ -57,8 +57,8 @@ namespace Deltacast
 
       static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
       static void compileShader(GLuint shaderID, const char* sourcePointer);
-      static void PrintGLError(const char* stmt, const char* fname, int line);
-      static void PrintGLFWError(const char* stmt, const char* fname, int line);
+      static void PrintGLError(GLenum error, const char* stmt, const char* fname, int line);
+      static void PrintGLFWError(int code, const char* description, const char* stmt, const char* fname, int line);
 
       GLFWwindow* m_window{nullptr};
       GLuint m_texture_in{0};
@@ -80,5 +80,93 @@ namespace Deltacast
       Deltacast::VideoViewer::InputFormat m_input_format{Deltacast::VideoViewer::InputFormat::nb_input_format};
       bool m_stop{false};
       bool m_rendering_active{false};
+
+      class Result {
+      public:
+         bool success = true;
+         operator bool() const { return success; }
+      };
+
+      template<typename T>
+      class ResultwValue : public Result{
+      public:
+         ResultwValue() = default;
+         T value;
+      };
+
+      template<typename Func, typename... Args>
+      static Result gl_check(const char* filename, int line, const char* funcname, Func func, Args... args) {
+         GLenum err;
+         Result result;
+
+         func(args...);
+         err = glGetError();
+         if (err != GL_NO_ERROR)
+         {
+            result.success = false;
+            #ifdef _DEBUG
+            PrintGLError(err, funcname, filename, line);
+            #endif
+         }
+         return result;
+      }
+
+      template<typename Func, typename... Args>
+      static auto gl_check_output(const char* filename, int line, const char* funcname, Func func, Args... args)
+         -> ResultwValue<decltype(func(args...))> {
+
+         GLenum err;
+         ResultwValue<decltype(func(args...))> result;
+
+         result.value = func(args...);
+         err = glGetError();
+         if (err != GL_NO_ERROR)
+         {
+            result.success = false;
+            #ifdef _DEBUG
+            PrintGLError(err, funcname, filename, line);
+            #endif
+         }
+         return result;
+      }
+
+      template<typename Func, typename... Args>
+      static Result glfw_check(const char* filename, int line, const char* funcname, Func func, Args... args) {
+         int code;
+         const char* description;
+         Result result;
+
+         func(args...);
+         code = glfwGetError(&description);
+         if(code != GLFW_NO_ERROR)
+         {
+            result.success = false;
+            #ifdef _DEBUG
+            PrintGLFWError(code, description, funcname, filename, line);
+            #endif
+         }
+         return result;
+      }
+
+      template<typename Func, typename... Args>
+      static auto glfw_check_output(const char* filename, int line, const char* funcname, Func func, Args... args)
+         -> ResultwValue<decltype(func(args...))> {
+
+         int code;
+         const char* description;
+         ResultwValue<decltype(func(args...))> result;
+
+         result.value = func(args...);
+         code = glfwGetError(&description);
+         if(code != GLFW_NO_ERROR)
+         {
+            result.success = false;
+            #ifdef _DEBUG
+            PrintGLFWError(code, description, funcname, filename, line);
+            #endif
+         }
+         return result;
+      }
+
    };
-} 
+}
