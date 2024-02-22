@@ -1,3 +1,8 @@
+## 1.1.2
+
+### Fixes
+- Fix GL_CHECK and GLFW_CHECK macro on GCC with < C++20
+  
 ## 1.1.1
 
 ### Fixes
