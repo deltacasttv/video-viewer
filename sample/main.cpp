@@ -88,10 +88,10 @@ int main(int argc, char** argv)
    int texture_height = 1080;
 
    //Starting VideoViewer rendering inside a new thread   
-   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::rgb_444_8, 10);
+   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb, 10);
 
    //Starting Pattern Generator inside a new thread
-   std::thread pattern_generator(pattern_thread, std::ref(viewer), 10, texture_width, texture_height, Deltacast::ColorBar::PixelFormat::rgb_444_8);
+   std::thread pattern_generator(pattern_thread, std::ref(viewer), 10, texture_width, texture_height, Deltacast::ColorBar::PixelFormat::bgr_444_8_le_msb);
 
    std::cout << "Press any key to stop or close Opengl window..." << std::endl;
    while (!viewer.window_request_close())

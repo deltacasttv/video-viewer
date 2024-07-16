@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#include <fstream>
+#include <iostream>
 #include "colorbar.hpp"
 
 using namespace Deltacast;
@@ -88,6 +90,15 @@ typedef struct
 #define R444_BLUE100_Q      0x00FF0000  //0xFF0000
 #define R444_BLACK100_Q     0x00000000  //0x000000
 
+#define BGR444_WHITE100_Q    0x00FFFFFF  // BGR: 0xFFFFFF
+#define BGR444_YELLOW100_Q   0x00FFFF00  // BGR: 0xFFFF00
+#define BGR444_CYAN100_Q     0x0000FFFF  // BGR: 0x00FFFF
+#define BGR444_GREEN100_Q    0x0000FF00  // BGR: 0x00FF00
+#define BGR444_MAGENTA100_Q  0x00FF00FF  // BGR: 0xFF00FF
+#define BGR444_RED100_Q      0x00FF0000  // BGR: 0xFF0000
+#define BGR444_BLUE100_Q     0x000000FF  // BGR: 0x0000FF
+#define BGR444_BLACK100_Q    0x00000000  // BGR: 0x000000
+
 ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
    m_pixel_format(pixel_format)
    ,m_width(width)
@@ -109,6 +120,9 @@ ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
       break;
    case PixelFormat::rgb_444_8:
       init_rgb_444_8(width, height);
+      break;
+   case PixelFormat::bgr_444_8_le_msb:
+      init_rgb_444_8_le_msb(width, height);
       break;
    default: break;
    }   
@@ -251,6 +265,54 @@ void ColorBar::init_rgb_444_8(int width, int height)
 
 }
 
+void ColorBar::init_rgb_444_8_le_msb(int width, int height)
+{
+   
+   m_datasize = (uint64_t)width * height * 4;
+   m_pattern = new uint8_t[m_datasize];
+
+   for (uint64_t x = 0; x < width-1; x++)
+   {
+      for (uint64_t y = 0; y < height; y++)
+      {
+         if (x < 1 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_WHITE100_Q;
+         else if (x < 2 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_YELLOW100_Q;
+         else if (x < 3 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_CYAN100_Q;
+         else if (x < 4 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_GREEN100_Q;
+         else if (x < 5 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_MAGENTA100_Q;
+         else if (x < 6 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_RED100_Q;
+         else if (x < 7 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_BLUE100_Q;
+         else if (x < 8 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_BLACK100_Q;
+      }
+   }
+
+   std::string filename = "colorbar.rgb";
+   std::ofstream file(filename, std::ios::out | std::ios::binary);
+   if (!file)
+   {
+        std::cerr << "Failed to open the file for writing: " << filename << std::endl;
+        return;
+    }
+
+    uint64_t bufferSize = width * height * 4; // Assuming 4 bytes per pixel (e.g., RGBA)
+    file.write(reinterpret_cast<char*>(m_pattern), bufferSize);
+    if (!file)
+    {
+        std::cerr << "Failed to write the buffer to the file: " << filename << std::endl;
+    }
+    file.close();
+
+}
+
+
 void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
 {
    switch (m_pixel_format)
@@ -269,6 +331,9 @@ void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
       break;
    case PixelFormat::rgb_444_8:
       draw_moving_line_rgb_444_8(data, frame_count);
+      break;
+   case PixelFormat::bgr_444_8_le_msb:
+      draw_moving_line_rgb_444_8_le_msb(data, frame_count);
       break;
    default: break;
    }
@@ -331,3 +396,9 @@ void ColorBar::draw_moving_line_rgb_444_8(uint8_t* data, int frame_count)
    for (uint64_t x = 0; x < (m_width-1); x++)
       *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = R444_WHITE100_Q;
 } 
+
+void ColorBar::draw_moving_line_rgb_444_8_le_msb(uint8_t* data, int frame_count)
+{
+   for (uint64_t x = 0; x < (m_width-1); x++)
+      *(uint32_t*)(data + (x * 4) + ((uint64_t)frame_count % m_height) * m_width * 4) = BGR444_WHITE100_Q;
+}

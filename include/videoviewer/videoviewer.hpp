@@ -56,6 +56,7 @@ namespace Deltacast
          reserved_bgr_444_12_be, /*< BGR 4:4:4 12bit big endian without any padding */
          reserved_bgr_444_16_le, /*< BGR 4:4:4 16bit little endian without any padding */
          reserved_bgr_444_16_be, /*< BGR 4:4:4 12bit big endian without any padding */
+         bgr_444_8_le_msb, /*< BGR 4:4:4 8bit with msb padding (32 bits) */
          nb_input_format
       };
 
