@@ -56,6 +56,8 @@ void pattern_thread(Deltacast::VideoViewer& viewer,int frame_rate_in_ms, int wid
                color_bar.draw_moving_line(data, frame_count);
             }
          }
+         else
+            std::cout << "memcpy error: The color bar data size is different from the video buffer size or is null" << std::endl;
 
          viewer.unlock_data();
       }

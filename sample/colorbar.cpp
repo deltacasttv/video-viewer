@@ -99,6 +99,7 @@ typedef struct
 #define BGR444_BLUE100_Q     0x000000FF  // BGR: 0x0000FF
 #define BGR444_BLACK100_Q    0x00000000  // BGR: 0x000000
 
+
 ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
    m_pixel_format(pixel_format)
    ,m_width(width)
@@ -268,48 +269,32 @@ void ColorBar::init_rgb_444_8(int width, int height)
 void ColorBar::init_rgb_444_8_le_msb(int width, int height)
 {
    
-   m_datasize = (uint64_t)width * height * 4;
+   m_datasize = (uint32_t)width * height * 4;
    m_pattern = new uint8_t[m_datasize];
+   auto m_pattern_32 = (uint32_t*)m_pattern;
 
-   for (uint64_t x = 0; x < width-1; x++)
+   for (uint32_t x = 0; x < width-1; x++)
    {
-      for (uint64_t y = 0; y < height; y++)
+      for (uint32_t y = 0; y < height; y++)
       {
          if (x < 1 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_WHITE100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_WHITE100_Q;
          else if (x < 2 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_YELLOW100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_YELLOW100_Q;
          else if (x < 3 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_CYAN100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_CYAN100_Q;
          else if (x < 4 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_GREEN100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_GREEN100_Q;
          else if (x < 5 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_MAGENTA100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_MAGENTA100_Q;
          else if (x < 6 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_RED100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_RED100_Q;
          else if (x < 7 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_BLUE100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_BLUE100_Q;
          else if (x < 8 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 4) + (y * width * 4)) = BGR444_BLACK100_Q;
+            *(m_pattern_32 + x + y * width) = BGR444_BLACK100_Q;
       }
    }
-
-   std::string filename = "colorbar.rgb";
-   std::ofstream file(filename, std::ios::out | std::ios::binary);
-   if (!file)
-   {
-        std::cerr << "Failed to open the file for writing: " << filename << std::endl;
-        return;
-    }
-
-    uint64_t bufferSize = width * height * 4; // Assuming 4 bytes per pixel (e.g., RGBA)
-    file.write(reinterpret_cast<char*>(m_pattern), bufferSize);
-    if (!file)
-    {
-        std::cerr << "Failed to write the buffer to the file: " << filename << std::endl;
-    }
-    file.close();
-
 }
 
 

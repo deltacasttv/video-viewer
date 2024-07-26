@@ -1,22 +1,16 @@
-constexpr char const * compute_shader_bgr_444_8_le_msb =
+constexpr char const * compute_shader_bgr_444_8_le_msb = R"(
+#version 430
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rgba8, binding = 0) uniform image2D img_output;
+layout(rgba8, binding = 1) uniform image2D img_input;
+
+void main()
 {
-"#version 430\n"
-"\n"
-"layout(local_size_x = 8, local_size_y = 8) in;\n"
-"\n"
-"layout(rgba8, binding = 0) uniform image2D img_output;\n"
-"layout(rgba8, binding = 1) uniform image2D img_input;\n"
-"\n"
-"void main() {\n"
-"    ivec2 coords = ivec2(gl_GlobalInvocationID);\n"
-"    vec4 bgr;\n"
-"    vec4 rgba;\n"
-"    rgba.w = 1.0;\n"
-"    bgr = imageLoad(img_input, ivec2(coords.x, coords.y));\n"
-"    rgba.z = bgr.x;\n"
-"    rgba.y = bgr.y;\n"
-"    rgba.x = bgr.z;\n"
-"\n"
-"    imageStore(img_output, coords, rgba);\n"
-"}\n"
-}; 
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID);
+    vec4 bgra = imageLoad(img_input, ivec2(pixelCoords.x,pixelCoords.y));
+    vec4 rgba = vec4(bgra.z, bgra.y, bgra.x, 1.0);
+    imageStore(img_output, pixelCoords, rgba);
+};
+)";
