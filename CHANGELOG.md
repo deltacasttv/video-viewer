@@ -1,3 +1,8 @@
+## 1.2.0
+
+### Added
+- Add support for BGR 4:4:4:4 8bits (little endian + padding) [Issue #19, PR !20]
+
 ## 1.1.2
 
 ### Fixes
