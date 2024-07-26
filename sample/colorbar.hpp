@@ -62,13 +62,13 @@ namespace Deltacast
       void init_ycbcr_422_10_be(int width, int height);
       void init_ycbcr_444_8(int width, int height);
       void init_rgb_444_8(int width, int height);
-      void init_rgb_444_8_le_msb(int width, int height);
+      void init_bgr_444_8_le_msb(int width, int height);
       void draw_moving_line_ycbcr_422_8(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_422_10_le_msb(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_444_8(uint8_t* data, int frame_count);
       void draw_moving_line_rgb_444_8(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_422_10_be(uint8_t* data, int frame_count);
-      void draw_moving_line_rgb_444_8_le_msb(uint8_t* data, int frame_count);
+      void draw_moving_line_bgr_444_8_le_msb(uint8_t* data, int frame_count);
 
       uint8_t* m_pattern{nullptr};
       uint64_t m_datasize{0};
