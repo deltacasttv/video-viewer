@@ -36,6 +36,7 @@ target_sources(video-viewer PRIVATE
 	${PROJECT_SOURCE_DIR}/src/ycbcr444_8_to_rgb444.shader
 	${PROJECT_SOURCE_DIR}/src/rgb444_8_to_rgb4444.shader
 	${PROJECT_SOURCE_DIR}/src/ycbcr422_10_be_to_rgb444.shader
+	${PROJECT_SOURCE_DIR}/src/bgr4444_8_to_rgb4444.shader
 	${gl3w_BINARY_DIR}/src/gl3w.c
  )
 

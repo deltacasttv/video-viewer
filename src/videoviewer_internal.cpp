@@ -20,6 +20,7 @@
 #include "ycbcr444_8_to_rgb444.shader"
 #include "rgb444_8_to_rgb4444.shader"
 #include "bgr444_8_to_rgb4444.shader"
+#include "bgr4444_8_to_rgb4444.shader"
 #include "vertex.shader"
 #include "fragment.shader"
 #include <iostream>
@@ -259,6 +260,12 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
      m_input_texture_width = m_texture_width * 5 / 8;
      m_input_texture_height = m_texture_height;
      compute_shader_name = compute_shader_422_10_be;
+     break;
+   case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
+     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 4;
+     m_input_texture_width = m_texture_width;
+     m_input_texture_height = m_texture_height;
+     compute_shader_name = compute_shader_bgr_444_8_le_msb;
      break;
    default: return false;
    }
