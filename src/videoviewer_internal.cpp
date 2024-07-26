@@ -262,11 +262,6 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
      compute_shader_name = compute_shader_422_10_be;
      break;
    case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
-     if (((m_texture_width * m_texture_height) % 2) != 0)
-     {
-       std::cout << "Texture ratio not supproted in this format" << std::endl;
-       return false;
-     }
      input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 4;
      m_input_texture_width = m_texture_width;
      m_input_texture_height = m_texture_height;
