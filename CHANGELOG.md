@@ -1,3 +1,8 @@
+## unreleased
+ 
+### Added
+- Upgrade dependencies to conan 2.x
+
 ## 1.2.0
 
 ### Added
