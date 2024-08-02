@@ -1,5 +1,4 @@
 constexpr char const * vertex_shader_src = R"(
-{
 #version 430
 
 in vec3 vertex;

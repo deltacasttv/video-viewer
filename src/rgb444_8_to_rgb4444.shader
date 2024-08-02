@@ -1,6 +1,4 @@
-constexpr char const * compute_shader_rgb_444_8 = R"(
-{
-#version 430
+constexpr char const * compute_shader_rgb_444_8 = R"(#version 430
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
