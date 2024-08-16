@@ -9,7 +9,7 @@ See https://www.deltacast.tv for more video products.
 ## How to build
 
 VideoViewer requires some dependencies to be installed on the system:
-- glfw v3.3.6
+- glfw 3.4
 - Python 3.x
 
 ### Retrieve dependencies with Conan (optional)
