@@ -19,6 +19,11 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <videoviewer/videoviewer.hpp>
+#include <vector>
+#include <memory>
+#include <functional>
+#include "shader.hpp"
+
 
 namespace Deltacast
 {
@@ -33,53 +38,57 @@ namespace Deltacast
       bool create_window(int width, int height, const char* title, const int xpos, const int ypos);
       bool init(int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format);
       bool release();
-      bool render_loop(int frame_rate_in_ms);
+      bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = [](){});
+      void render_iteration();
       void stop();
       bool lock_data(uint8_t** data, uint64_t* size);
       void unlock_data();
       bool window_request_close();
       bool window_set_title(const char* title);
       bool destroy_window();
+      void process_escape_key();
+
+      void set_rendering_active(bool rendering_active) { m_rendering_active = rendering_active; }
+      bool is_rendering_active() { return m_rendering_active; }
+      void set_stop(bool stop) { m_stop = stop; }
+      bool is_stop() { return m_stop; }
 
    private:
       bool create_window(int width, int height, const char* title, const bool is_invisible);
       bool window_set_position(const int xpos, const int ypos);
       void render();
       void create_vertexes();
-      void create_textures(int input_width, int input_height, int output_width, int output_height);
-      void create_pixel_buffer_objects(uint64_t size);
+      void create_textures();
+      void create_framebuffers();
       void create_shaders(const char* compute_shader_name);
-      bool run_compute_shader(GLuint num_groups_x, GLuint num_groups_y, int input_pixel_width, int input_pixel_height);
       void delete_texture();
-      void delete_pixel_buffer_object();
       void delete_vertexes();
-      void delete_shaders();
+      void delete_framebuffers();
 
       static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-      static void compileShader(GLuint shaderID, const char* sourcePointer);
       static void PrintGLError(GLenum error, const char* stmt, const char* fname, int line);
       static void PrintGLFWError(int code, const char* description, const char* stmt, const char* fname, int line);
 
       GLFWwindow* m_window{nullptr};
-      GLuint m_texture_in{0};
-      GLuint m_texture_out{0};
+      GLuint m_texture_from_buffer{0};
+      GLuint m_texture_to_render{0};
+      GLuint m_compute_framebuffer{0};
       GLuint m_vertex_array{0};
-      GLuint m_cs_program_id{0};
-      GLuint m_programID{0};
       GLuint m_index_buffer_object{0};
       GLuint m_vertex_buffer_object{0};
-      int m_texture_width{0};
-      int m_texture_height{0};
-      int m_input_texture_width{0};
-      int m_input_texture_height{0};
+      uint32_t m_window_width{0};
+      uint32_t m_window_height{0};
+      uint32_t m_texture_width{0};
+      uint32_t m_texture_height{0};
       std::mutex m_rendering_mutex;
-      GLuint m_pbo_ids[2]{ 0,0 };
-      int m_pbo_index{0};
-      int m_pbo_next_index{0};
-      uint64_t m_pbo_size{0};
       Deltacast::VideoViewer::InputFormat m_input_format{Deltacast::VideoViewer::InputFormat::nb_input_format};
       bool m_stop{false};
       bool m_rendering_active{false};
+      std::mutex m_data_mutex;
+      std::vector<uint8_t> m_data;      
+
+      std::unique_ptr<Shader> m_compute_shader;
+      std::unique_ptr<Shader> m_render_shader;
 
       class Result {
       public:

@@ -54,10 +54,21 @@ bool Deltacast::VideoViewer::release()
    return result_release && result_destroy;
 }
 
-bool Deltacast::VideoViewer::render_loop(int frame_rate_in_ms)
+bool Deltacast::VideoViewer::render_loop(int frame_rate_in_ms, std::function<void()> sync_func)
 {
-   return gl_video_viewer.render_loop(frame_rate_in_ms);
+   return gl_video_viewer.render_loop(frame_rate_in_ms, sync_func);
 }
+
+void Deltacast::VideoViewer::render_iteration()
+{
+   gl_video_viewer.render_iteration();
+}
+
+void Deltacast::VideoViewer::start()
+{
+   gl_video_viewer.set_rendering_active(true);
+}
+
 void Deltacast::VideoViewer::stop()
 {
    gl_video_viewer.stop();
@@ -78,4 +89,9 @@ bool Deltacast::VideoViewer::window_request_close()
 bool Deltacast::VideoViewer::window_set_title(const char* title)
 {
    return gl_video_viewer.window_set_title(title);
-} 
+}
+
+void Deltacast::VideoViewer::process_escape_key()
+{
+   gl_video_viewer.process_escape_key();
+}

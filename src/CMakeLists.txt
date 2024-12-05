@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 add_library(video-viewer STATIC)
 
 find_package(glfw3 REQUIRED)
+find_package(glm REQUIRED)
 if(TARGET glfw)
-	target_link_libraries(video-viewer PUBLIC glfw)
+    target_link_libraries(video-viewer PUBLIC glfw glm::glm)
 else()
-	message(FATAL_ERROR "The target glfw::glfw was not found.")
+    message(FATAL_ERROR "The target glfw::glfw was not found.")
 endif()
 
 include(FetchContent)
@@ -26,30 +27,24 @@ message("Executing gl3w_gen.py")
 execute_process(COMMAND "${PYTHON_EXECUTABLE}" ${gl3w_SOURCE_DIR}/gl3w_gen.py WORKING_DIRECTORY ${gl3w_BINARY_DIR})
 
 target_sources(video-viewer PRIVATE
-	${PROJECT_SOURCE_DIR}/src/videoviewer_internal.cpp
-	${PROJECT_SOURCE_DIR}/src/videoviewer_internal.hpp
-	${PROJECT_SOURCE_DIR}/src/videoviewer.cpp
-	${PROJECT_SOURCE_DIR}/src/fragment.shader
-	${PROJECT_SOURCE_DIR}/src/vertex.shader
-	${PROJECT_SOURCE_DIR}/src/ycbcr422_8_to_rgb444.shader
-	${PROJECT_SOURCE_DIR}/src/ycbcr422_10_le_msb_to_rgb444.shader
-	${PROJECT_SOURCE_DIR}/src/ycbcr444_8_to_rgb444.shader
-	${PROJECT_SOURCE_DIR}/src/rgb444_8_to_rgb4444.shader
-	${PROJECT_SOURCE_DIR}/src/ycbcr422_10_be_to_rgb444.shader
-	${PROJECT_SOURCE_DIR}/src/bgr4444_8_to_rgb4444.shader
-	${gl3w_BINARY_DIR}/src/gl3w.c
+    ${PROJECT_SOURCE_DIR}/src/videoviewer_internal.cpp
+    ${PROJECT_SOURCE_DIR}/src/videoviewer_internal.hpp
+    ${PROJECT_SOURCE_DIR}/src/videoviewer.cpp
+    ${PROJECT_SOURCE_DIR}/src/shader.cpp
+    ${gl3w_BINARY_DIR}/src/gl3w.c
  )
 
 target_include_directories(video-viewer
    PUBLIC "${gl3w_BINARY_DIR}/include"
    PUBLIC ${PROJECT_SOURCE_DIR}/include
+   PUBLIC ${PROJECT_SOURCE_DIR}/src
 )
 
 if(UNIX)
-	target_link_libraries(video-viewer PUBLIC
-		dl
-		pthread
-	)
+    target_link_libraries(video-viewer PUBLIC
+        dl
+        pthread
+    )
 endif()
 
 target_compile_features(video-viewer PUBLIC cxx_std_11)
@@ -64,4 +59,4 @@ install(TARGETS video-viewer DESTINATION "."
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         )
-		  
+          

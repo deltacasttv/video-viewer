@@ -46,6 +46,7 @@ namespace Deltacast
          reserved_rgb_444_16_le, /*< RGB 4:4:4 16bit little endian without any padding */
          reserved_rgb_444_16_be, /*< RGB 4:4:4 12bit big endian without any padding */
          bgr_444_8_le_msb,
+         bgr_444_8, /*< BGR 4:4:4 8bit without any padding */
          nb_pixel_format
       };
 
@@ -62,11 +63,13 @@ namespace Deltacast
       void init_ycbcr_422_10_be(int width, int height);
       void init_ycbcr_444_8(int width, int height);
       void init_rgb_444_8(int width, int height);
+      void init_bgr_444_8(int width, int height);
       void init_bgr_444_8_le_msb(int width, int height);
       void draw_moving_line_ycbcr_422_8(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_422_10_le_msb(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_444_8(uint8_t* data, int frame_count);
       void draw_moving_line_rgb_444_8(uint8_t* data, int frame_count);
+      void draw_moving_line_bgr_444_8(uint8_t* data, int frame_count);
       void draw_moving_line_ycbcr_422_10_be(uint8_t* data, int frame_count);
       void draw_moving_line_bgr_444_8_le_msb(uint8_t* data, int frame_count);
 

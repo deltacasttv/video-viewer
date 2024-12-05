@@ -1,5 +1,6 @@
 [requires]
 glfw/3.4
+glm/cci.20230113
 [generators]
 CMakeDeps
 CMakeToolchain

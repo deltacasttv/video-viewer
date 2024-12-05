@@ -14,28 +14,22 @@
  */
 
 #include "videoviewer_internal.hpp"
-#include "ycbcr422_8_to_rgb444.shader"
-#include "ycbcr422_10_le_msb_to_rgb444.shader"
-#include "ycbcr422_10_be_to_rgb444.shader"
-#include "ycbcr444_8_to_rgb444.shader"
-#include "rgb444_8_to_rgb4444.shader"
-#include "bgr444_8_to_rgb4444.shader"
-#include "bgr4444_8_to_rgb4444.shader"
-#include "vertex.shader"
-#include "fragment.shader"
+#include "shaders/simple_vertices.glsl"
+#include "shaders/flip_vertices.glsl"
+#include "shaders/render.glsl"
+#include "shaders/rgb444_8_to_rgb4444.glsl"
+#include "shaders/bgr444_8_to_rgb4444.glsl"
 #include <iostream>
+#include <thread>
+#include <chrono>
+#include <vector>
+#include <glm/glm.hpp>
 
 #if defined(WIN32) || defined(_WIN32)
 #include <Windows.h>
 #else
 #include <unistd.h>
-#include <string.h>
-#endif
-
-#if defined(WIN32) || defined(_WIN32)
-#define SLEEP(frame_rate_in_ms) Sleep(frame_rate_in_ms);
-#else
-#define SLEEP(frame_rate_in_ms) usleep(frame_rate_in_ms * 1000);
+#include <cstring>
 #endif
 
 #define GL_CHECK(func, ...) gl_check(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
@@ -44,17 +38,30 @@
 #define GLFW_CHECK_OUTPUT(func, ...) glfw_check_output(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
 
 using namespace Deltacast;
-
-struct CoordinatesSet {
-   GLfloat x; //vertex coordinate
-   GLfloat y; //vertex coordinate
-   GLfloat s; //texture coordinate
-   GLfloat t; //texture coordinate
+struct Vertex
+{
+   glm::vec2 position;
+   glm::vec2 texcoord;
 };
 
+const std::vector<Vertex> vertices = {
+    {{-1.0f, -1.0f},  {0.0f, 0.0f}}, // {triangle vertices x, y} , {texture x, y}
+    {{1.0f, -1.0f},  {1.0f, 0.0f}},
+    {{1.0f, 1.0f},  {1.0f, 1.0f}},
+    {{-1.0f, 1.0f},  {0.0f, 1.0f}},
+};
+
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 2, 3, 0
+};
+
+static uint32_t g_window_width = 0;
+static uint32_t g_window_height = 0;
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 VideoViewer_Internal::VideoViewer_Internal()
+    : m_compute_shader(std::make_unique<Shader>()),
+      m_render_shader(std::make_unique<Shader>())
 {
 }
 
@@ -81,14 +88,8 @@ void VideoViewer_Internal::PrintGLFWError(int code, const char* description, con
 void VideoViewer_Internal::delete_texture()
 {
    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
-   GL_CHECK(glDeleteTextures, 1, &m_texture_in);
-   GL_CHECK(glDeleteTextures, 1, &m_texture_out);
-}
-
-void VideoViewer_Internal::delete_pixel_buffer_object()
-{
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, 0);
-   GL_CHECK(glDeleteBuffers, 2, m_pbo_ids);
+   GL_CHECK(glDeleteTextures, 1, &m_texture_from_buffer);
+   GL_CHECK(glDeleteTextures, 1, &m_texture_to_render);
 }
 
 void VideoViewer_Internal::delete_vertexes()
@@ -103,31 +104,12 @@ void VideoViewer_Internal::delete_vertexes()
    GL_CHECK(glDeleteVertexArrays, 1, &m_vertex_array);
 }
 
-void VideoViewer_Internal::delete_shaders()
-{
-   GL_CHECK(glDeleteProgram, m_programID);
-   GL_CHECK(glDeleteProgram, m_cs_program_id);
-}
-
 
 void VideoViewer_Internal::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-   GL_CHECK(glViewport, 0, 0, width, height);
-}
-
-void VideoViewer_Internal::compileShader(GLuint shaderID, const char* sourcePointer) {
-   GL_CHECK(glShaderSource, shaderID, 1, &sourcePointer, nullptr);
-   GL_CHECK(glCompileShader, shaderID);
-
-   GLint Result = GL_FALSE;
-   int InfoLogLength = 1024;
-   char shaderErrorMessage[1024] = { 0 };
-
-   GL_CHECK(glGetShaderiv, shaderID, GL_COMPILE_STATUS, &Result);
-
-   GL_CHECK(glGetShaderInfoLog, shaderID, InfoLogLength, nullptr, shaderErrorMessage);
-   if (strlen(shaderErrorMessage) != 0)
-      std::cout << shaderErrorMessage << std::endl;
+   g_window_width = width;
+   g_window_height = height;
+   GL_CHECK(glViewport, 0, 0, g_window_width, g_window_height);
 }
 
 bool VideoViewer_Internal::create_window(int width, int height, const char* title)
@@ -158,12 +140,17 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
      return false;
 
    GLFW_CHECK(glfwWindowHint, GLFW_CONTEXT_VERSION_MAJOR, 4);
-   GLFW_CHECK(glfwWindowHint, GLFW_CONTEXT_VERSION_MINOR, 3);
+   // Apple supports only OpenGL 4.1 maximum
+   GLFW_CHECK(glfwWindowHint, GLFW_CONTEXT_VERSION_MINOR, 1);
+   GLFW_CHECK(glfwWindowHint, GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+   GLFW_CHECK(glfwWindowHint, GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
    if(is_invisible)
       GLFW_CHECK(glfwWindowHint, GLFW_VISIBLE, false);
 
    m_window = GLFW_CHECK_OUTPUT(glfwCreateWindow, width, height, title, nullptr, nullptr).value;
+   g_window_width = width;
+   g_window_height = height;
 
    if (!m_window)
      return false;
@@ -174,8 +161,6 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
      return false;
 
    GLFW_CHECK(glfwSetFramebufferSizeCallback, m_window, framebuffer_size_callback);
-
-   GLFW_CHECK(glfwMakeContextCurrent, nullptr);
 
    return true;
 }
@@ -188,98 +173,100 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
    m_texture_width = texture_width;
    m_texture_height = texture_height;
    m_input_format = input_format;
-   switch (m_input_format)
+   switch(m_input_format)
    {
-   case Deltacast::VideoViewer::InputFormat::ycbcr_422_8:
-      input_buffer_size = (uint64_t) m_texture_width * (uint64_t) m_texture_height * 2;
-      if ((m_texture_width % 2) != 0)
-      {
-        std::cout << "Texture width not supproted in this format" << std::endl;
-        return false;
-      }
-      m_input_texture_width = m_texture_width / 2;
-      m_input_texture_height = m_texture_height;
-      compute_shader_name = compute_shader_422_8;
-      break;
-   case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
-     if (((m_texture_width * m_texture_height * 8) % 3) != 0)
-     {
-       std::cout << "Texture ratio not supproted in this format" << std::endl;
-       return false;
-     }
-     if((m_texture_height % 3) != 0)
-     {
-       std::cout << "Texture height not supproted in this format" << std::endl;
-       return false;
-     }
-     input_buffer_size = (uint64_t) m_texture_width * (uint64_t) m_texture_height * 8 / 3;
-     m_input_texture_width = m_texture_width * 2;
-     m_input_texture_height = m_texture_height / 3;
-     compute_shader_name = compute_shader_422_10_le_msb;
-     break;
-   case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
-     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
-     if (((m_texture_width*3) % 4) != 0)
-     {
-       std::cout << "Texture width not supproted in this format" << std::endl;
-       return false;
-     }
-     m_input_texture_width = m_texture_width * 3 / 4;
-     m_input_texture_height = m_texture_height;
-     compute_shader_name = compute_shader_yuv_444_8;
-     break;
-   case Deltacast::VideoViewer::InputFormat::rgb_444_8:
-     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
-     if (((m_texture_width*3) % 4) != 0)
-     {
-       std::cout << "Texture width not supproted in this format" << std::endl;
-       return false;
-     }
-     m_input_texture_width = m_texture_width * 3 / 4;
-     m_input_texture_height = m_texture_height;
-     compute_shader_name = compute_shader_rgb_444_8;
-     break;
-   case Deltacast::VideoViewer::InputFormat::bgr_444_8:
-     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
-     if (((m_texture_width*3) % 4) != 0)
-     {
-       std::cout << "Texture width not supproted in this format" << std::endl;
-       return false;
-     }
-     m_input_texture_width = m_texture_width * 3 / 4;
-     m_input_texture_height = m_texture_height;
-     compute_shader_name = compute_shader_bgr_444_8;
-     break;
-   case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
-     if (((m_texture_width * m_texture_height * 5) % 2) != 0)
-     {
-       std::cout << "Texture ratio not supproted in this format" << std::endl;
-       return false;
-     }
-     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 5 / 2;
-     m_input_texture_width = m_texture_width * 5 / 8;
-     m_input_texture_height = m_texture_height;
-     compute_shader_name = compute_shader_422_10_be;
-     break;
-   case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
-     input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 4;
-     m_input_texture_width = m_texture_width;
-     m_input_texture_height = m_texture_height;
-     compute_shader_name = compute_shader_bgr_444_8_le_msb;
-     break;
-   default: return false;
+      case Deltacast::VideoViewer::InputFormat::rgb_444_8:
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
+         compute_shader_name = fragment_shader_rgb444_8_to_rgb44444;
+         m_data.resize(input_buffer_size);
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
+         compute_shader_name = fragment_shader_bgr444_8_to_rgb44444;
+         m_data.resize(input_buffer_size);
+         break;
+      default:
+         return false;
    }
+
+
+
+   // switch (m_input_format)
+   // {
+   // case Deltacast::VideoViewer::InputFormat::ycbcr_422_8:
+   //    input_buffer_size = (uint64_t) m_texture_width * (uint64_t) m_texture_height * 2;
+   //    if ((m_texture_width % 2) != 0)
+   //    {
+   //      std::cout << "Texture width not supproted in this format" << std::endl;
+   //      return false;
+   //    }
+   //    m_input_texture_width = m_texture_width / 2;
+   //    m_input_texture_height = m_texture_height;
+   //    compute_shader_name = compute_shader_422_8;
+   //    break;
+   // case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
+   //   if (((m_texture_width * m_texture_height * 8) % 3) != 0)
+   //   {
+   //     std::cout << "Texture ratio not supproted in this format" << std::endl;
+   //     return false;
+   //   }
+   //   if((m_texture_height % 3) != 0)
+   //   {
+   //     std::cout << "Texture height not supproted in this format" << std::endl;
+   //     return false;
+   //   }
+   //   input_buffer_size = (uint64_t) m_texture_width * (uint64_t) m_texture_height * 8 / 3;
+   //   m_input_texture_width = m_texture_width * 2;
+   //   m_input_texture_height = m_texture_height / 3;
+   //   compute_shader_name = compute_shader_422_10_le_msb;
+   //   break;
+   // case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
+   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
+   //   if (((m_texture_width*3) % 4) != 0)
+   //   {
+   //     std::cout << "Texture width not supproted in this format" << std::endl;
+   //     return false;
+   //   }
+   //   m_input_texture_width = m_texture_width * 3 / 4;
+   //   m_input_texture_height = m_texture_height;
+   //   compute_shader_name = compute_shader_yuv_444_8;
+   //   break;
+   // case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
+   //   if (((m_texture_width*3) % 4) != 0)
+   //   {
+   //     std::cout << "Texture width not supproted in this format" << std::endl;
+   //     return false;
+   //   }
+   //   m_input_texture_width = m_texture_width * 3 / 4;
+   //   m_input_texture_height = m_texture_height;
+   //   compute_shader_name = compute_shader_bgr_444_8;
+   //   break;
+   // case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
+   //   if (((m_texture_width * m_texture_height * 5) % 2) != 0)
+   //   {
+   //     std::cout << "Texture ratio not supproted in this format" << std::endl;
+   //     return false;
+   //   }
+   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 5 / 2;
+   //   m_input_texture_width = m_texture_width * 5 / 8;
+   //   m_input_texture_height = m_texture_height;
+   //   compute_shader_name = compute_shader_422_10_be;
+   //   break;
+   // case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
+   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 4;
+   //   m_input_texture_width = m_texture_width;
+   //   m_input_texture_height = m_texture_height;
+   //   compute_shader_name = compute_shader_bgr_444_8_le_msb;
+   //   break;
+   // default: return false;
+   // }
 
    std::lock_guard<std::mutex> guard(m_rendering_mutex);
 
-   GLFW_CHECK(glfwMakeContextCurrent, m_window);
-
-   create_pixel_buffer_objects(input_buffer_size);
-   create_textures(m_input_texture_width, m_input_texture_height, m_texture_width, m_texture_height);
-   create_vertexes();
    create_shaders(compute_shader_name);
-   GLFW_CHECK(glfwMakeContextCurrent, nullptr);
-
+   create_textures();
+   create_vertexes();
+   create_framebuffers();
    return true;
 }
 
@@ -290,169 +277,90 @@ bool VideoViewer_Internal::release()
    if (m_rendering_active)
       return false;
 
-   GLFW_CHECK(glfwMakeContextCurrent, m_window);
-
-   delete_pixel_buffer_object();
-
    delete_texture();
 
    delete_vertexes();
 
-   delete_shaders();
-
-   GLFW_CHECK(glfwMakeContextCurrent, nullptr);
+   m_compute_shader.reset();
+   m_render_shader.reset();
 
    return true;
 }
 
 void VideoViewer_Internal::create_shaders(const char* compute_shader_name)
 {
-   GLuint compute_shader_id;
-   char* compute_shader = 0;
-
-   GLint result = GL_FALSE;
-   int info_log_length = 1024;
-   char program_error_msg[1024] = { 0 };
-
-   compute_shader_id = glCreateShader(GL_COMPUTE_SHADER);
-
-
-   compileShader(compute_shader_id, compute_shader_name);
-
-   m_cs_program_id = glCreateProgram();
-
-   GL_CHECK(glAttachShader, m_cs_program_id, compute_shader_id);
-   GL_CHECK(glLinkProgram, m_cs_program_id);
-
-   GL_CHECK(glDeleteShader, compute_shader_id);
-
-   GLuint vertex_shader_id;
-   GLuint fragment_shader_id;
-
-   result = GL_FALSE;
-   info_log_length = 1024;
-   memset(program_error_msg, 0, 1024);
-
-   char* vertexShader = 0;
-   char* fragmentShader = 0;
-
-   vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
-   fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
-
-   compileShader(vertex_shader_id, vertex_shader_src);
-   compileShader(fragment_shader_id, fragment_shader_src);
-
-   m_programID = glCreateProgram();
-
-   GL_CHECK(glAttachShader, m_programID, vertex_shader_id);
-   GL_CHECK(glAttachShader, m_programID, fragment_shader_id);
-
-   GL_CHECK(glLinkProgram, m_programID);
-
-   GL_CHECK(glDeleteShader, vertex_shader_id);
-   GL_CHECK(glDeleteShader, fragment_shader_id);
-
-   GL_CHECK(glGetProgramiv, m_programID, GL_LINK_STATUS, &result);
-   GL_CHECK(glGetProgramiv, m_programID, GL_INFO_LOG_LENGTH, &info_log_length);
-   GL_CHECK(glGetProgramInfoLog, m_programID, info_log_length, nullptr, &program_error_msg[0]);
-
-   if (strlen(program_error_msg) != 0)
-      std::cout << program_error_msg << "\n";
+   m_compute_shader->compile(std::string(vertex_shader_flip_vertices), std::string(compute_shader_name));
+   m_render_shader->compile(std::string(vertex_shader_simple_vertices), std::string(fragment_shader_render));
 }
 
 void VideoViewer_Internal::create_vertexes()
 {
-   CoordinatesSet quad_vertex[4];
-   unsigned short int quad_index[4];
-
-   quad_vertex[0].x = -1.0f;
-   quad_vertex[0].y = 1.0f;
-
-   quad_vertex[1].x = -1.0f;
-   quad_vertex[1].y = -1.0f;
-
-   quad_vertex[2].x = 1.0f;
-   quad_vertex[2].y = 1.0f;
-
-   quad_vertex[3].x = 1.0f;
-   quad_vertex[3].y = -1.0f;
-
-   quad_index[0] = 0;
-   quad_index[1] = 1;
-   quad_index[2] = 2;
-   quad_index[3] = 3;
-
-   quad_vertex[0].s = 0.0f;
-   quad_vertex[0].t = 0.0f;
-   quad_vertex[1].s = 0.0f;
-   quad_vertex[1].t = 1.0f;
-   quad_vertex[2].s = 1.0f;
-   quad_vertex[2].t = 0.0f;
-   quad_vertex[3].s = 1.0f;
-   quad_vertex[3].t = 1.0f;
-
-
-   GL_CHECK(glGenBuffers, 1, &m_index_buffer_object);
-   GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, m_index_buffer_object);
-   GL_CHECK(glBufferData, GL_ELEMENT_ARRAY_BUFFER, 4 * sizeof(unsigned short int), quad_index, GL_STATIC_DRAW);
-   GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, 0);
-
-   GL_CHECK(glGenBuffers, 1, &m_vertex_buffer_object);
-   GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, m_vertex_buffer_object);
-   GL_CHECK(glBufferData, GL_ARRAY_BUFFER, sizeof(CoordinatesSet) * 4, nullptr, GL_STATIC_DRAW);
-   GL_CHECK(glBufferSubData, GL_ARRAY_BUFFER, 0, sizeof(CoordinatesSet) * 4, quad_vertex);
-   GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
-
    GL_CHECK(glGenVertexArrays, 1, &m_vertex_array);
-   GL_CHECK(glBindVertexArray, m_vertex_array);
+   GL_CHECK(glGenBuffers, 1, &m_vertex_buffer_object);
+   GL_CHECK(glGenBuffers, 1, &m_index_buffer_object);
 
+   GL_CHECK(glBindVertexArray, m_vertex_array);
+   
    GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, m_index_buffer_object);
+   GL_CHECK(glBufferData, GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
 
    GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, m_vertex_buffer_object);
+   GL_CHECK(glBufferData, GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-   GL_CHECK(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), nullptr);
+   GL_CHECK(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
    GL_CHECK(glEnableVertexAttribArray, 0);
 
-   GL_CHECK(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(sizeof(GLfloat) * 2));
+   GL_CHECK(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texcoord));
    GL_CHECK(glEnableVertexAttribArray, 1);
 
+   GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
    GL_CHECK(glBindVertexArray, 0);
 }
 
-void VideoViewer_Internal::create_textures(int input_width, int input_height, int output_width, int output_height)
+void VideoViewer_Internal::create_framebuffers()
 {
-   /* Texture d'entr�e avant conversion de couleur */
-   GL_CHECK(glGenTextures, 1, &m_texture_in);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_in);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   GL_CHECK(glGenerateMipmap, GL_TEXTURE_2D);
-   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA8, input_width, input_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
+   GL_CHECK(glGenFramebuffers, 1, &m_compute_framebuffer);
+   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_compute_framebuffer);
+   GL_CHECK(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture_to_render, 0);
+   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
 
-   /* Texture de sortie pour rendu */
-   GL_CHECK(glGenTextures, 1, &m_texture_out);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_out);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   GL_CHECK(glGenerateMipmap, GL_TEXTURE_2D);
-   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA8, output_width, output_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
+   if(GL_CHECK_OUTPUT(glCheckFramebufferStatus, GL_FRAMEBUFFER).value != GL_FRAMEBUFFER_COMPLETE)
+   {
+      std::cout << "Framebuffer not complete" << std::endl;
+      throw std::runtime_error("Framebuffer not complete");
+   }
 }
 
-void VideoViewer_Internal::create_pixel_buffer_objects(uint64_t size)
+void VideoViewer_Internal::create_textures()
 {
-   m_pbo_size = size;
-   GL_CHECK(glGenBuffers, 2, m_pbo_ids);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, m_pbo_ids[0]);
-   GL_CHECK(glBufferData, GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, m_pbo_ids[1]);
-   GL_CHECK(glBufferData, GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, 0);
+   //Input texture before color conversion
+   GL_CHECK(glGenTextures, 1, &m_texture_from_buffer);
+   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_from_buffer);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   switch(m_input_format)
+   {
+      case Deltacast::VideoViewer::InputFormat::rgb_444_8:
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+         GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB8, m_texture_width, m_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+         break;
+      default:
+         throw std::runtime_error("Unsupported input format");
+   }
+   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
+
+   // Output texture after color conversion in shaders
+   GL_CHECK(glGenTextures, 1, &m_texture_to_render);
+   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   GL_CHECK(glGenerateMipmap, GL_TEXTURE_2D);
+   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA8, m_texture_width, m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
 }
 
 bool VideoViewer_Internal::window_request_close()
@@ -495,53 +403,61 @@ bool VideoViewer_Internal::window_set_position(const int xpos, const int ypos)
    return false;
 }
 
-bool VideoViewer_Internal::render_loop(int frame_rate_in_ms)
+bool VideoViewer_Internal::render_loop(int frame_rate_in_ms, std::function<void()> sync_func)
 {
    m_stop = false;
    m_rendering_active = true;
+   auto frame_rate = std::chrono::milliseconds(frame_rate_in_ms);
 
-   while (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value && !m_stop){
-      m_rendering_mutex.lock();
-      GLFW_CHECK(glfwMakeContextCurrent, m_window);
-
-      GLFW_CHECK(glfwPollEvents);
-      render();
-      GLFW_CHECK(glfwSwapBuffers, m_window);
-
-      GLFW_CHECK(glfwMakeContextCurrent, nullptr);
-      m_rendering_mutex.unlock();
-
-      SLEEP(frame_rate_in_ms);
+   while (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value && !m_stop)
+   {
+      auto start_time = std::chrono::high_resolution_clock::now();
+      process_escape_key();
+      sync_func();
+      render_iteration();
+      auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
+      std::this_thread::sleep_for(frame_rate - elapsed_time);
    }
 
    m_rendering_active = false;
    return true;
 }
 
+void VideoViewer_Internal::render_iteration()
+{
+   GLFW_CHECK(glfwPollEvents);
+   render();
+   GLFW_CHECK(glfwSwapBuffers, m_window);
+}
+
 void VideoViewer_Internal::stop()
 {
    m_stop = true;
+   m_rendering_active = false;
 }
 
 bool VideoViewer_Internal::lock_data(uint8_t** data, uint64_t* size)
 {
    m_rendering_mutex.lock();
 
-   if (m_window)
+   if(m_rendering_active)
    {
-      if (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value)
+      if (m_window)
       {
-         *size = m_pbo_size;
+         if (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value)
+         {
+            *size = m_data.size();
 
-         m_pbo_index = (m_pbo_index + 1) % 2;
-         m_pbo_next_index = (m_pbo_index + 1) % 2;
+            if(m_data.size() > 0)
+               *data = m_data.data();
+            else
+            {
+               m_rendering_mutex.unlock();
+               return false;
+            }
 
-         GLFW_CHECK(glfwMakeContextCurrent, m_window);
-         GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, m_pbo_ids[m_pbo_next_index]);
-         GL_CHECK(glBufferData, GL_PIXEL_UNPACK_BUFFER, m_pbo_size, nullptr, GL_STREAM_DRAW);
-         *data = (uint8_t*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-
-         return true;
+            return true;
+         }
       }
    }
    m_rendering_mutex.unlock();
@@ -550,84 +466,62 @@ bool VideoViewer_Internal::lock_data(uint8_t** data, uint64_t* size)
 
 void VideoViewer_Internal::unlock_data()
 {
-   GL_CHECK(glUnmapBuffer, GL_PIXEL_UNPACK_BUFFER);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, 0);
-   GLFW_CHECK(glfwMakeContextCurrent, nullptr);
    m_rendering_mutex.unlock();
 }
 
 void VideoViewer_Internal::render()
 {
-   run_compute_shader(m_texture_width /8, m_texture_height /8, m_input_texture_width, m_input_texture_height);
+   // Bind the framebuffer for offscreen rendering
+    glBindFramebuffer(GL_FRAMEBUFFER, m_compute_framebuffer);
+    glViewport(0, 0, m_texture_width, m_texture_height);
+    glBindVertexArray(m_vertex_array);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-   GL_CHECK(glEnable, GL_CULL_FACE);
+    // Use the compute shader
+    m_compute_shader->use();
 
-   GL_CHECK(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Bind the texture from the pattern
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_texture_from_buffer);
 
-   GL_CHECK(glUseProgram, m_programID);
+    // Update the texture with new pattern data if available
+    m_rendering_mutex.lock();
+    if (m_data.size() > 0)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGB, GL_UNSIGNED_BYTE, m_data.data());
+    m_rendering_mutex.unlock();
 
-   GL_CHECK(glBindVertexArray, m_vertex_array);
+    // Set the texture uniform
+    glUniform1i(m_compute_shader->get_uniform_location("input_texture"), 0);
 
-   GL_CHECK(glActiveTexture, GL_TEXTURE0);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_out);
+    // Draw the triangle
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
 
-   GL_CHECK(glDrawElements, GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_SHORT, (GLvoid*)0);
+    // Copy the rendered texture to another texture
+    glBindTexture(GL_TEXTURE_2D, m_texture_to_render);
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, m_texture_width, m_texture_height, 0);
 
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
-   //GL_CHECK(glActiveTexture(0));
+    // Unbind the framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, g_window_width, g_window_height);
 
-   GL_CHECK(glBindVertexArray, 0);
+    // Use the render shader
+    m_render_shader->use();
 
-   GL_CHECK(glUseProgram, 0);
+    // Bind the texture to render
+    glActiveTexture(GL_TEXTURE0);
+    glUniform1i(m_render_shader->get_uniform_location("input_texture"), 0);
+
+    // Draw the triangle
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
+
+    // Unbind all buffers and textures (not necessary but for completeness)
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
 }
 
-bool VideoViewer_Internal::run_compute_shader(GLuint num_groups_x, GLuint num_groups_y, int input_width, int input_height)
+void VideoViewer_Internal::process_escape_key()
 {
-   int workgroup_count[2] = { 0,0 };
-   GL_CHECK(glGetIntegeri_v, GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &workgroup_count[0]);
-   GL_CHECK(glGetIntegeri_v, GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &workgroup_count[1]);
-
-   if ((int)num_groups_x > workgroup_count[0] || (int)num_groups_y > workgroup_count[1])
-   {
-      std::cout << "Error: " << num_groups_x << " groups_x [max " << workgroup_count[0] << "]" << std::endl;
-      std::cout << "Error: " << num_groups_y << " groups_y [max " << workgroup_count[1] << "]" << std::endl;
-
-      return false;
-   }
-
-   int workgroup_size[2] = { 0,0 };
-
-   GL_CHECK(glGetIntegeri_v, GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &workgroup_size[0]);
-   GL_CHECK(glGetIntegeri_v, GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &workgroup_size[1]);
-
-   if ((int)(m_texture_width /num_groups_x) > workgroup_size[0] || (int)(m_texture_height / num_groups_y) > workgroup_size[1])
-   {
-      std::cout << "Error: group_x size = " << m_texture_width / num_groups_x << " [max " << workgroup_size[0] << "]" << std::endl;
-      std::cout << "Error: group_y size = " << m_texture_height / num_groups_y << " [max " << workgroup_size[1] << "]" << std::endl;
-
-      return false;
-   }
-
-   GL_CHECK(glUseProgram, m_cs_program_id);
-
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_out);
-   GL_CHECK(glBindImageTexture, 0, m_texture_out, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_in);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, m_pbo_ids[m_pbo_index]);
-   GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, input_width, input_height, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-   GL_CHECK(glBindBuffer, GL_PIXEL_UNPACK_BUFFER, 0);
-   GL_CHECK(glBindImageTexture, 1, m_texture_in, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-
-   GL_CHECK(glDispatchCompute, num_groups_x, num_groups_y, 1);
-
-   GL_CHECK(glMemoryBarrier, GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-   GL_CHECK(glBindImageTexture, 1, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-   GL_CHECK(glBindImageTexture, 0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-   GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
-
-   GL_CHECK(glUseProgram, 0);
-
-   return true;
+   if (GLFW_CHECK_OUTPUT(glfwGetKey, m_window, GLFW_KEY_ESCAPE).value == GLFW_PRESS)
+      GLFW_CHECK(glfwSetWindowShouldClose, m_window, true);
 }

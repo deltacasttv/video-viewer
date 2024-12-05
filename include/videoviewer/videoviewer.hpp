@@ -15,11 +15,8 @@
 
 #pragma once
 
-#ifdef __GNUC__
-#include <stdint-gcc.h>
-#else
 #include <stdint.h>
-#endif
+#include <functional>
 
 namespace Deltacast
 {
@@ -66,7 +63,7 @@ namespace Deltacast
       /*!
       * @brief Initialization function that creates opengl window and textures
       *
-      * Limitation: this function should be called in the same thread that calls VV_render_loop to allow window events to be processed
+      * Limitation: this function should be called in the same thread that calls render_loop or render_iteration to allow window events to be processed
       *
       * @returns the status of its execution (true = no error or false = error)
       */
@@ -75,7 +72,7 @@ namespace Deltacast
       /*!
       * @brief Initialization function that creates opengl window and textures at a given position
       *
-      * Limitation: this function should be called in the same thread that calls VV_render_loop to allow window events to be processed
+      * Limitation: this function should be called in the same thread that calls render_loop or render_iteration to allow window events to be processed
       *
       * @returns the status of its execution (true = no error or false = error)
       */
@@ -85,30 +82,46 @@ namespace Deltacast
       /*!
       * @brief Release function that destroy opengl window and textures
       *
-      * Ensure that VV_render_loop returns before calling VV_release function.
+      * Ensure that render_loop or render_iteration  returns before calling VV_release function.
       *
       * @returns the status of its execution (true = no error or false = error)
       */
       bool release();
 
       /*!
-      * @brief Loop function that renders textures in the opengl context
+      * @brief Loop function that renders textures in the opengl context. A sync function can be provided to synchronize with other threads. By default, no synchronization is done.
       *
-      * Limitation: this function should be called in the same thread that calls VV_init to allow window events to be processed
+      * Limitation: this function should be called in the same thread that calls init to allow window events to be processed
       *
       * @returns the status of its execution (true = no error or false = error)
       */
-      bool render_loop(int frame_rate_in_ms);
+      bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = [](){});
 
       /*!
-      * @brief Stop function that forces VV_reder_loop function to return
+      * @brief Render iteration that renders textures in the opengl context
+      *
+      * Note: render_loop function should be preferred to this function but, in the case of the rendering must be done in the main thread (i.e. on Macos), this function can be used to make a custom loop
+      * 
+      * Limitation: this function should be called in the same thread that calls init to allow window events to be processed
+      */
+      void render_iteration();
+
+      /*!
+      * @brief Start function that init internal variables of the library
+      *
+      * Note: must be only called in the context of the usage of render_iteration function
+      */
+      void start();
+
+      /*!
+      * @brief Stop function that forces render_loop function to return
       */
       void stop();
 
       /*!
       * @brief Function that provides pointer to data memory space.
       *
-      * If success, this function must be followed by call to VV_unlock_data
+      * If success, this function must be followed by call to unlock_data
       *
       * @returns the status of its execution (true = no error or false = error)
       */
@@ -138,5 +151,11 @@ namespace Deltacast
       */
       bool window_set_title(const char* title);
 
+      /*!
+      * @brief Function that allows user to close the window if the escape key is pressed
+      * Note : must be called in the render_iteration usage case
+      * Limitation: this function should be called in the same thread that calls render_iteration to allow window events to be processed
+      */
+      void process_escape_key();
    };
 }

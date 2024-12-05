@@ -124,6 +124,8 @@ ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
       break;
    case PixelFormat::bgr_444_8_le_msb:
       init_bgr_444_8_le_msb(width, height);
+   case PixelFormat::bgr_444_8:
+      init_bgr_444_8(width, height);
       break;
    default: break;
    }   
@@ -266,6 +268,36 @@ void ColorBar::init_rgb_444_8(int width, int height)
 
 }
 
+void ColorBar::init_bgr_444_8(int width, int height)
+{
+   m_datasize = (uint64_t)width * height * 3;
+   m_pattern = new uint8_t[m_datasize];
+
+   for (uint64_t x = 0; x < width-1; x++)
+   {
+      for (uint64_t y = 0; y < height; y++)
+      {
+         if (x < 1 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_WHITE100_Q;
+         else if (x < 2 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_YELLOW100_Q;
+         else if (x < 3 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_CYAN100_Q;
+         else if (x < 4 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_GREEN100_Q;
+         else if (x < 5 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_MAGENTA100_Q;
+         else if (x < 6 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_RED100_Q;
+         else if (x < 7 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_BLUE100_Q;
+         else if (x < 8 * (width / 8))
+            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_BLACK100_Q;
+      }
+   }
+
+}
+
 void ColorBar::init_bgr_444_8_le_msb(int width, int height)
 {
    
@@ -319,6 +351,8 @@ void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
       break;
    case PixelFormat::bgr_444_8_le_msb:
       draw_moving_line_bgr_444_8_le_msb(data, frame_count);
+   case PixelFormat::bgr_444_8:
+      draw_moving_line_bgr_444_8(data, frame_count);
       break;
    default: break;
    }
@@ -380,6 +414,12 @@ void ColorBar::draw_moving_line_rgb_444_8(uint8_t* data, int frame_count)
 {
    for (uint64_t x = 0; x < (m_width-1); x++)
       *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = R444_WHITE100_Q;
+}
+
+void ColorBar::draw_moving_line_bgr_444_8(uint8_t* data, int frame_count)
+{
+   for (uint64_t x = 0; x < (m_width-1); x++)
+      *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = BGR444_WHITE100_Q;
 } 
 
 void ColorBar::draw_moving_line_bgr_444_8_le_msb(uint8_t* data, int frame_count)
