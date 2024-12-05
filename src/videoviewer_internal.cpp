@@ -17,8 +17,10 @@
 #include "shaders/simple_vertices.glsl"
 #include "shaders/flip_vertices.glsl"
 #include "shaders/render.glsl"
-#include "shaders/rgb444_8_to_rgb4444.glsl"
-#include "shaders/bgr444_8_to_rgb4444.glsl"
+#include "shaders/rgb_444_8_to_rgb_4444.glsl"
+#include "shaders/bgr_444_8_to_rgb_4444.glsl"
+#include "shaders/ycbcr_444_8_to_rgb_4444.glsl"
+#include "shaders/bgr_444_8_le_msb_to_rgb_4444.glsl"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -177,18 +179,27 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
    {
       case Deltacast::VideoViewer::InputFormat::rgb_444_8:
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
-         compute_shader_name = fragment_shader_rgb444_8_to_rgb44444;
+         compute_shader_name = fragment_shader_rgb_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
+         break;
       case Deltacast::VideoViewer::InputFormat::bgr_444_8:
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
-         compute_shader_name = fragment_shader_bgr444_8_to_rgb44444;
+         compute_shader_name = fragment_shader_bgr_444_8_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
+         compute_shader_name = fragment_shader_ycbcr_444_8_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 4;
+         compute_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       default:
          return false;
    }
-
-
 
    // switch (m_input_format)
    // {
@@ -230,17 +241,6 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
    //   m_input_texture_height = m_texture_height;
    //   compute_shader_name = compute_shader_yuv_444_8;
    //   break;
-   // case Deltacast::VideoViewer::InputFormat::bgr_444_8:
-   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 3;
-   //   if (((m_texture_width*3) % 4) != 0)
-   //   {
-   //     std::cout << "Texture width not supproted in this format" << std::endl;
-   //     return false;
-   //   }
-   //   m_input_texture_width = m_texture_width * 3 / 4;
-   //   m_input_texture_height = m_texture_height;
-   //   compute_shader_name = compute_shader_bgr_444_8;
-   //   break;
    // case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
    //   if (((m_texture_width * m_texture_height * 5) % 2) != 0)
    //   {
@@ -251,12 +251,6 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
    //   m_input_texture_width = m_texture_width * 5 / 8;
    //   m_input_texture_height = m_texture_height;
    //   compute_shader_name = compute_shader_422_10_be;
-   //   break;
-   // case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
-   //   input_buffer_size = (uint64_t)m_texture_width * (uint64_t)m_texture_height * 4;
-   //   m_input_texture_width = m_texture_width;
-   //   m_input_texture_height = m_texture_height;
-   //   compute_shader_name = compute_shader_bgr_444_8_le_msb;
    //   break;
    // default: return false;
    // }
@@ -344,7 +338,11 @@ void VideoViewer_Internal::create_textures()
    {
       case Deltacast::VideoViewer::InputFormat::rgb_444_8:
       case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+      case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
          GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB8, m_texture_width, m_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+         break;
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
+         GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA8, m_texture_width, m_texture_height, 0, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
          break;
       default:
          throw std::runtime_error("Unsupported input format");
@@ -487,7 +485,19 @@ void VideoViewer_Internal::render()
     // Update the texture with new pattern data if available
     m_rendering_mutex.lock();
     if (m_data.size() > 0)
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGB, GL_UNSIGNED_BYTE, m_data.data());
+    switch(m_input_format)
+   {
+      case Deltacast::VideoViewer::InputFormat::rgb_444_8:
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+      case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
+         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGB, GL_UNSIGNED_BYTE, m_data.data());
+         break;
+      case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
+         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGBA, GL_UNSIGNED_BYTE, m_data.data());
+         break;
+      default:
+         throw std::runtime_error("Unsupported input format");
+   }
     m_rendering_mutex.unlock();
 
     // Set the texture uniform
@@ -498,7 +508,7 @@ void VideoViewer_Internal::render()
 
     // Copy the rendered texture to another texture
     glBindTexture(GL_TEXTURE_2D, m_texture_to_render);
-    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, m_texture_width, m_texture_height, 0);
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_texture_width, m_texture_height, 0);
 
     // Unbind the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

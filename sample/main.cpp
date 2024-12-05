@@ -72,6 +72,7 @@ void pattern_thread(Deltacast::VideoViewer& viewer, int width, int height, Delta
       std::this_thread::sleep_for(frame_rate_in_ms - elapsed_time);
       frame_count++;
    }
+   synchronisation_cv.notify_one();
 }
 
 //Limitation: For Macos, the rendering is done in the main thread
@@ -81,7 +82,7 @@ void render_video(Deltacast::VideoViewer& viewer,int window_width, int window_he
 {
    if (viewer.init(window_width, window_height, window_title, texture_width, texture_height, input_format))
    {
-      viewer.render_loop_sync(frame_rate_in_ms, [&synchronisation_cv, &synchronisation_mutex]() {
+      viewer.render_loop(frame_rate_in_ms, [&synchronisation_cv, &synchronisation_mutex]() {
          std::unique_lock<std::mutex> lk(synchronisation_mutex);
          synchronisation_cv.wait(lk);
       });
@@ -89,6 +90,8 @@ void render_video(Deltacast::VideoViewer& viewer,int window_width, int window_he
    }
    else
       std::cout << "VideoViewer initialization failed" << std::endl;
+   
+   stop.store(true);
 }
 #endif
 
@@ -108,7 +111,6 @@ void handle_key(Deltacast::VideoViewer& viewer, std::atomic<bool>& stop)
    }
    
    stop.store(true);
-
    close_keyboard();
 }
 
@@ -124,9 +126,9 @@ int main(int argc, char** argv)
 
 #if !defined(__APPLE__)
    //Starting VideoViewer rendering inside a new thread   
-   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8, 10, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
+   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb, 10, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
 #else
-   if(! viewer.init(800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8))
+   if(! viewer.init(800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::ycbcr_444_8))
    {
       std::cout << "VideoViewer initialization failed" << std::endl;
       return -1;
@@ -134,7 +136,7 @@ int main(int argc, char** argv)
 #endif
 
    //Starting Pattern Generator inside a new thread
-   std::thread pattern_generator(pattern_thread, std::ref(viewer), texture_width, texture_height, Deltacast::ColorBar::PixelFormat::bgr_444_8, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
+   std::thread pattern_generator(pattern_thread, std::ref(viewer), texture_width, texture_height, Deltacast::ColorBar::PixelFormat::ycbcr_444_8, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
 
    std::thread handle_key_thread(handle_key, std::ref(viewer), std::ref(stop));
 

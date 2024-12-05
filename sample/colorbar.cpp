@@ -124,6 +124,7 @@ ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
       break;
    case PixelFormat::bgr_444_8_le_msb:
       init_bgr_444_8_le_msb(width, height);
+      break;
    case PixelFormat::bgr_444_8:
       init_bgr_444_8(width, height);
       break;
@@ -300,7 +301,6 @@ void ColorBar::init_bgr_444_8(int width, int height)
 
 void ColorBar::init_bgr_444_8_le_msb(int width, int height)
 {
-   
    m_datasize = (uint32_t)width * height * 4;
    m_pattern = new uint8_t[m_datasize];
    auto m_pattern_32 = (uint32_t*)m_pattern;
@@ -351,6 +351,7 @@ void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
       break;
    case PixelFormat::bgr_444_8_le_msb:
       draw_moving_line_bgr_444_8_le_msb(data, frame_count);
+      break;
    case PixelFormat::bgr_444_8:
       draw_moving_line_bgr_444_8(data, frame_count);
       break;
