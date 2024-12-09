@@ -80,6 +80,12 @@ namespace Deltacast
       uint32_t m_window_height{0};
       uint32_t m_texture_width{0};
       uint32_t m_texture_height{0};
+      uint16_t m_internal_pixel_format{GL_RGBA8};
+      uint32_t m_internal_texture_width{0};
+      uint32_t m_internal_texture_height{0};
+      uint16_t m_internal_texture_format{GL_RGBA};
+
+
       std::mutex m_rendering_mutex;
       Deltacast::VideoViewer::InputFormat m_input_format{Deltacast::VideoViewer::InputFormat::nb_input_format};
       bool m_stop{false};
