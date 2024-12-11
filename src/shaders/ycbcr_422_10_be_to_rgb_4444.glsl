@@ -5,7 +5,12 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-vec4 yuv2rgba(vec4 yuvk, bool bt_709)
+uniform int output_width;
+uniform int output_height;
+
+uniform bool bt_709;
+
+vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
@@ -17,7 +22,6 @@ vec4 yuv2rgba(vec4 yuvk, bool bt_709)
 }
 
 void main() {
-    bool bt_709 = true; //TODO: pass this information from the code
     ivec2 texture_size = textureSize(input_texture, 0);
     ivec2 texture_coords = ivec2(floor(texture_size.x * texture_coordinates.x), floor(texture_size.y * texture_coordinates.y));
     int pixel_index = int(texture_coords.x + texture_coords.y * texture_size.x);
@@ -124,6 +128,6 @@ void main() {
         }
     }
     
-    output_color = yuv2rgba(yuvk, bt_709);
+    output_color = yuv2rgba(yuvk);
 }
 )";

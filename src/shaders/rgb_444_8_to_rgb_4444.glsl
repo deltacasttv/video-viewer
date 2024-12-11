@@ -5,6 +5,11 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
+uniform int output_width;
+uniform int output_height;
+
+uniform bool bt_709;
+
 void main() {
     vec3 rgb = texture(input_texture, texture_coordinates).rgb;
     output_color = vec4(rgb, 1.0);

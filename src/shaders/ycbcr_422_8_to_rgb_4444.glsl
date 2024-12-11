@@ -5,7 +5,12 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-vec4 yuv2rgba(vec3 ycbcr, bool bt_709)
+uniform int output_width;
+uniform int output_height;
+
+uniform bool bt_709;
+
+vec4 yuv2rgba(vec3 ycbcr)
 {
     vec4 rgba;
 
@@ -30,18 +35,17 @@ vec4 yuv2rgba(vec3 ycbcr, bool bt_709)
 }
 
 void main() {
-    bool bt_709 = true; //TODO: pass this information from the code
     ivec2 texture_size = textureSize(input_texture, 0);
     ivec2 texture_coords = ivec2(texture_size.x * texture_coordinates.x, texture_size.y * texture_coordinates.y);
     bool is_odd = (texture_coords.x % 2) == 1;
     vec4 ycbcr = texture(input_texture, texture_coordinates).rgba; // u, y, v, y
     if(is_odd)
     {
-        output_color = yuv2rgba(ycbcr.xyz, bt_709);
+        output_color = yuv2rgba(ycbcr.xyz);
     }
     else
     {
-        output_color = yuv2rgba(ycbcr.xwz, bt_709);
+        output_color = yuv2rgba(ycbcr.xwz);
     }
 }
 )";

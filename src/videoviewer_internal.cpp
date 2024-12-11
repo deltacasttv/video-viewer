@@ -23,6 +23,7 @@
 #include "shaders/ycbcr_444_8_to_rgb_4444.glsl"
 #include "shaders/bgr_444_8_le_msb_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_be_to_rgb_4444.glsl"
+#include "shaders/ycbcr_422_10_le_msb_to_rgb_4444.glsl"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -155,6 +156,8 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
    m_window = GLFW_CHECK_OUTPUT(glfwCreateWindow, width, height, title, nullptr, nullptr).value;
    g_window_width = width;
    g_window_height = height;
+   m_window_width = width;
+   m_window_height = height;
 
    if (!m_window)
      return false;
@@ -229,7 +232,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          compute_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
-      case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:      
+      case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
          if((m_texture_width % 2) != 0)
          {
             std::cout << "Texture width not supported in this format" << std::endl;
@@ -240,34 +243,28 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
-         input_buffer_size = static_cast<uint64_t>(m_texture_width / 2) * static_cast<uint64_t>(m_texture_height) * 5;
+         input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
          compute_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
+         if((m_texture_width % 3) != 0)
+         {
+            std::cout << "Texture width not supported in this format" << std::endl;
+            return false;
+         }
+         
+         m_internal_pixel_format = GL_RGBA8;
+         m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2 / 3);
+         m_internal_texture_height = m_texture_height;
+         m_internal_texture_format = GL_RGBA;
+         input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
+         compute_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       default:
          return false;
    }
-
-   // switch (m_input_format)
-   // {
-   // case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
-   //   if (((m_texture_width * m_texture_height * 8) % 3) != 0)
-   //   {
-   //     std::cout << "Texture ratio not supproted in this format" << std::endl;
-   //     return false;
-   //   }
-   //   if((m_texture_height % 3) != 0)
-   //   {
-   //     std::cout << "Texture height not supproted in this format" << std::endl;
-   //     return false;
-   //   }
-   //   input_buffer_size = (uint64_t) m_texture_width * (uint64_t) m_texture_height * 8 / 3;
-   //   m_input_texture_width = m_texture_width * 2;
-   //   m_input_texture_height = m_texture_height / 3;
-   //   compute_shader_name = compute_shader_422_10_le_msb;
-   //   break;
-   // default: return false;
-   // }
 
    std::lock_guard<std::mutex> guard(m_rendering_mutex);
 
@@ -471,53 +468,58 @@ void VideoViewer_Internal::unlock_data()
 
 void VideoViewer_Internal::render()
 {
+    m_window_width = g_window_width;
+    m_window_height = g_window_height;
    // Bind the framebuffer for offscreen rendering
-    glBindFramebuffer(GL_FRAMEBUFFER, m_compute_framebuffer);
-    glViewport(0, 0, m_texture_width, m_texture_height);
-    glBindVertexArray(m_vertex_array);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_compute_framebuffer);
+    GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
+    GL_CHECK(glBindVertexArray, m_vertex_array);
+    GL_CHECK(glClear, GL_COLOR_BUFFER_BIT);
 
     // Use the compute shader
     m_compute_shader->use();
 
     // Bind the texture from the pattern
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture_from_buffer);
+    GL_CHECK(glActiveTexture, GL_TEXTURE0);
+    GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_from_buffer);
 
     // Update the texture with new pattern data if available
     m_rendering_mutex.lock();
     if (m_data.size() > 0)      
-         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, GL_UNSIGNED_BYTE, m_data.data());
+         GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, GL_UNSIGNED_BYTE, m_data.data());
     m_rendering_mutex.unlock();
 
     // Set the texture uniform
-    glUniform1i(m_compute_shader->get_uniform_location("input_texture"), 0);
+    m_compute_shader->set_int("input_texture", 0);
+    m_compute_shader->set_int("output_width", m_window_width);
+    m_compute_shader->set_int("output_height", m_window_height);
+    m_compute_shader->set_bool("bt_709", true);
 
     // Draw the triangle
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
+    GL_CHECK(glDrawElements, GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid *)0);
 
     // Copy the rendered texture to another texture
-    glBindTexture(GL_TEXTURE_2D, m_texture_to_render);
-    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_texture_width, m_texture_height, 0);
+    GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
+    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width, m_window_height, 0);
 
     // Unbind the framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, g_window_width, g_window_height);
+    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
 
     // Use the render shader
     m_render_shader->use();
 
     // Bind the texture to render
-    glActiveTexture(GL_TEXTURE0);
-    glUniform1i(m_render_shader->get_uniform_location("input_texture"), 0);
+    GL_CHECK(glActiveTexture, GL_TEXTURE0);
+    m_render_shader->set_int("input_texture", 0);
 
     // Draw the triangle
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
+    GL_CHECK(glDrawElements, GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid *)0);
 
     // Unbind all buffers and textures (not necessary but for completeness)
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindVertexArray(0);
+    GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
+    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
+    GL_CHECK(glBindVertexArray, 0);
 }
 
 void VideoViewer_Internal::process_escape_key()

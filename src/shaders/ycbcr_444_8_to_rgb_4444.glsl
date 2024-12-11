@@ -5,7 +5,12 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-vec4 yuv2rgba(vec3 ycbcr, bool bt_709)
+uniform int output_width;
+uniform int output_height;
+
+uniform bool bt_709;
+
+vec4 yuv2rgba(vec3 ycbcr)
 {
     vec4 rgba;
 
@@ -30,8 +35,7 @@ vec4 yuv2rgba(vec3 ycbcr, bool bt_709)
 }
 
 void main() {
-    bool bt_709 = true; //TODO: pass this information from the code
     vec3 ycbcr = texture(input_texture, texture_coordinates).rgb;
-    output_color = yuv2rgba(ycbcr, bt_709);
+    output_color = yuv2rgba(ycbcr);
 }
 )";
