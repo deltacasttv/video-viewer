@@ -11,7 +11,7 @@ uniform int output_height;
 uniform bool bt_709;
 
 void main() {
-    vec4 bgra = texture(input_texture, texture_coordinates);
+    vec4 bgra = texelFetch(input_texture, ivec2(texture_coordinates), 0);
     output_color = vec4(bgra.z, bgra.y, bgra.x, 1.0);
 }
 )";

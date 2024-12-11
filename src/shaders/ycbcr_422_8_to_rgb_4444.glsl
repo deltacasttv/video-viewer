@@ -37,8 +37,8 @@ vec4 yuv2rgba(vec3 ycbcr)
 void main() {
     ivec2 texture_size = textureSize(input_texture, 0);
     ivec2 texture_coords = ivec2(texture_size.x * texture_coordinates.x, texture_size.y * texture_coordinates.y);
-    bool is_odd = (texture_coords.x % 2) == 1;
-    vec4 ycbcr = texture(input_texture, texture_coordinates).rgba; // u, y, v, y
+    bool is_odd = (texture_coords.x % 2) == 1;    
+    vec4 ycbcr = texelFetch(input_texture, ivec2(round(texture_coordinates)), 0);
     if(is_odd)
     {
         output_color = yuv2rgba(ycbcr.xyz);

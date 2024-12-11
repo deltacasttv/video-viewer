@@ -49,7 +49,7 @@ struct Vertex
    glm::vec2 texcoord;
 };
 
-const std::vector<Vertex> vertices = {
+std::vector<Vertex> vertices = {
     {{-1.0f, -1.0f},  {0.0f, 0.0f}}, // {triangle vertices x, y} , {texture x, y}
     {{1.0f, -1.0f},  {1.0f, 0.0f}},
     {{1.0f, 1.0f},  {1.0f, 1.0f}},
@@ -270,6 +270,10 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 
    create_shaders(compute_shader_name);
    create_textures();
+   vertices[0].texcoord = {0.0f, 0.0f};
+   vertices[1].texcoord = {1.0f * m_texture_width, 0.0f};
+   vertices[2].texcoord = {1.0f * m_texture_width, 1.0f * m_texture_height};
+   vertices[3].texcoord = {0.0f, 1.0f * m_texture_height};
    create_vertexes();
    create_framebuffers();
    return true;

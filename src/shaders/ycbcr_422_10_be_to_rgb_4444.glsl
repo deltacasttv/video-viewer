@@ -23,8 +23,7 @@ vec4 yuv2rgba(vec4 yuvk)
 
 void main() {
     ivec2 texture_size = textureSize(input_texture, 0);
-    ivec2 texture_coords = ivec2(floor(texture_size.x * texture_coordinates.x), floor(texture_size.y * texture_coordinates.y));
-    int pixel_index = int(texture_coords.x + texture_coords.y * texture_size.x);
+    int pixel_index = int(texture_coordinates.x + texture_coordinates.y * texture_size.x);
     
     ivec2 pixel_coords = ivec2(gl_FragCoord.x * texture_size.x, gl_FragCoord.y * texture_size.y);
     int out_pixel_index = int(pixel_coords.x + pixel_coords.y * texture_size.x);
@@ -33,8 +32,8 @@ void main() {
     yuvk.w = 1.0;
     if(mod(pixel_index, 5) == 0)
     {
-        vec4 uyvy = texelFetch(input_texture, texture_coords, 0);
-        vec4 uyvy_next = texelFetch(input_texture, texture_coords + ivec2(1, 0), 0);
+        vec4 uyvy = texelFetch(input_texture, ivec2(floor(texture_coordinates)), 0);
+        vec4 uyvy_next = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(1, 0), 0);
 
         float u = float((int(uyvy.r * 255.0) << 2) | ((int(uyvy.g * 255.0) >> 6) & 0x03)) / 1023.0;
         float y0 = float(((int(uyvy.g * 255.0) & 0x3F) << 4) | ((int(uyvy.b * 255.0) >> 4) & 0x0F)) / 1023.0;
@@ -52,8 +51,8 @@ void main() {
     }
     else if(mod(pixel_index, 5) == 1)
     {
-        vec4 uyvy = texelFetch(input_texture, texture_coords, 0);
-        vec4 uyvy_next = texelFetch(input_texture, texture_coords + ivec2(1, 0), 0);
+        vec4 uyvy = texelFetch(input_texture, ivec2(floor(texture_coordinates)), 0);
+        vec4 uyvy_next = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(1, 0), 0);
 
         float u = float((int(uyvy.g * 255.0) << 2) | ((int(uyvy.b * 255.0) >> 6) & 0x03)) / 1023.0;
         float y0 = float(((int(uyvy.b * 255.0) & 0x3F) << 4) | ((int(uyvy.a * 255.0) >> 4) & 0x0F)) / 1023.0;
@@ -71,8 +70,8 @@ void main() {
     }
     else if(mod(pixel_index, 5) == 2)
     {
-        vec4 uyvy = texelFetch(input_texture, texture_coords, 0);
-        vec4 uyvy_next = texelFetch(input_texture, texture_coords + ivec2(1, 0), 0);
+        vec4 uyvy = texelFetch(input_texture, ivec2(floor(texture_coordinates)), 0);
+        vec4 uyvy_next = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(1, 0), 0);
 
         float u = float((int(uyvy.b * 255.0) << 2) | ((int(uyvy.a * 255.0) >> 6) & 0x03)) / 1023.0;
         float y0 = float(((int(uyvy.a * 255.0) & 0x3F) << 4) | ((int(uyvy_next.r * 255.0) >> 4) & 0x0F)) / 1023.0;
@@ -90,8 +89,8 @@ void main() {
     }
     else if(mod(pixel_index, 5) == 3)
     {
-        vec4 uyvy = texelFetch(input_texture, texture_coords, 0);
-        vec4 uyvy_next = texelFetch(input_texture, texture_coords + ivec2(1, 0), 0);
+        vec4 uyvy = texelFetch(input_texture, ivec2(floor(texture_coordinates)), 0);
+        vec4 uyvy_next = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(1, 0), 0);
 
         float u = float((int(uyvy.a * 255.0) << 2) | ((int(uyvy_next.r * 255.0) >> 6) & 0x03)) / 1023.0;
         float y0 = float(((int(uyvy_next.r * 255.0) & 0x3F) << 4) | ((int(uyvy_next.g * 255.0) >> 4) & 0x0F)) / 1023.0;
@@ -109,9 +108,9 @@ void main() {
     }
     else if(mod(pixel_index, 5) == 4)
     {
-        vec4 uyvy = texelFetch(input_texture, texture_coords, 0);
-        vec4 uyvy_next = texelFetch(input_texture, texture_coords + ivec2(1, 0), 0);
-        vec4 uyvy_next2 = texelFetch(input_texture, texture_coords + ivec2(2, 0), 0);
+        vec4 uyvy = texelFetch(input_texture, ivec2(floor(texture_coordinates)), 0);
+        vec4 uyvy_next = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(1, 0), 0);
+        vec4 uyvy_next2 = texelFetch(input_texture, ivec2(floor(texture_coordinates)) + ivec2(2, 0), 0);
 
         float u = float((int(uyvy_next.r * 255.0) << 2) | ((int(uyvy_next.g * 255.0) >> 6) & 0x03)) / 1023.0;
         float y0 = float(((int(uyvy_next.g * 255.0) & 0x3F) << 4) | ((int(uyvy_next.b * 255.0) >> 4) & 0x0F)) / 1023.0;
