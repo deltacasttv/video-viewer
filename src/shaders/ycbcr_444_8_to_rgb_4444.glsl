@@ -35,7 +35,7 @@ vec4 yuv2rgba(vec3 ycbcr)
 }
 
 void main() {
-    vec3 ycbcr = texelFetch(input_texture, ivec2(texture_coordinates), 0);
+    vec3 ycbcr = texelFetch(input_texture, ivec2(texture_coordinates), 0).rgb;
     output_color = yuv2rgba(ycbcr);
 }
 )";

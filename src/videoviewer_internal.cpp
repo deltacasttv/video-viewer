@@ -49,7 +49,7 @@ struct Vertex
    glm::vec2 texcoord;
 };
 
-std::vector<Vertex> vertices = {
+const std::vector<Vertex> vertices = {
     {{-1.0f, -1.0f},  {0.0f, 0.0f}}, // {triangle vertices x, y} , {texture x, y}
     {{1.0f, -1.0f},  {1.0f, 0.0f}},
     {{1.0f, 1.0f},  {1.0f, 1.0f}},
@@ -197,6 +197,11 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::rgb_444_8:
+         if (((m_texture_width * 3) % 4) != 0)
+         {
+            std::cout << "Texture width not supproted in this format" << std::endl;
+            return false;
+         }
          m_internal_pixel_format = GL_RGB8;
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
@@ -206,6 +211,11 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::bgr_444_8:
+         if (((m_texture_width * 3) % 4) != 0)
+         {
+            std::cout << "Texture width not supproted in this format" << std::endl;
+            return false;
+         }
          m_internal_pixel_format = GL_RGB8;
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
@@ -215,6 +225,11 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
+         if (((m_texture_width * 3) % 4) != 0)
+         {
+            std::cout << "Texture width not supproted in this format" << std::endl;
+            return false;
+         }
          m_internal_pixel_format = GL_RGB8;
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
@@ -227,15 +242,15 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_pixel_format = GL_RGBA8;
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
-         m_internal_texture_format = GL_BGRA;
+         m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 4;
          compute_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
-         if((m_texture_width % 2) != 0)
+         if (((m_texture_width * m_texture_height * 5) % 2) != 0)
          {
-            std::cout << "Texture width not supported in this format" << std::endl;
+            std::cout << "Texture ratio not supported in this format" << std::endl;
             return false;
          }
          
@@ -248,15 +263,20 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
-         if((m_texture_width % 3) != 0)
+         if (((m_texture_width * m_texture_height * 8) % 3) != 0)
          {
-            std::cout << "Texture width not supported in this format" << std::endl;
+            std::cout << "Texture ratio not supported in this format" << std::endl;
+            return false;
+         }
+         if((m_texture_height % 3) != 0)
+         {
+            std::cout << "Texture height not supported in this format" << std::endl;
             return false;
          }
          
          m_internal_pixel_format = GL_RGBA8;
-         m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2 / 3);
-         m_internal_texture_height = m_texture_height;
+         m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2);
+         m_internal_texture_height = static_cast<uint32_t>(m_texture_height / 3);
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
          compute_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
@@ -270,10 +290,6 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 
    create_shaders(compute_shader_name);
    create_textures();
-   vertices[0].texcoord = {0.0f, 0.0f};
-   vertices[1].texcoord = {1.0f * m_texture_width, 0.0f};
-   vertices[2].texcoord = {1.0f * m_texture_width, 1.0f * m_texture_height};
-   vertices[3].texcoord = {0.0f, 1.0f * m_texture_height};
    create_vertexes();
    create_framebuffers();
    return true;
@@ -494,6 +510,8 @@ void VideoViewer_Internal::render()
     m_rendering_mutex.unlock();
 
     // Set the texture uniform
+    m_compute_shader->set_int("texture_width", m_texture_width);
+    m_compute_shader->set_int("texture_height", m_texture_height);
     m_compute_shader->set_int("input_texture", 0);
     m_compute_shader->set_int("output_width", m_window_width);
     m_compute_shader->set_int("output_height", m_window_height);
