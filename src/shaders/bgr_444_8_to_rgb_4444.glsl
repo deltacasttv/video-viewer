@@ -5,11 +5,6 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-uniform int output_width;
-uniform int output_height;
-
-uniform bool bt_709;
-
 void main() {
     vec4 bgr = texelFetch(input_texture, ivec2(texture_coordinates), 0);
     output_color = vec4(bgr.b, bgr.g, bgr.r, 1.0);

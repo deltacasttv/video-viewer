@@ -5,12 +5,9 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-uniform int output_width;
-uniform int output_height;
-
 uniform bool bt_709;
 
-vec4 yuv2rgba(vec3 ycbcr)
+vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
@@ -36,6 +33,10 @@ vec4 yuv2rgba(vec3 ycbcr)
 
 void main() {
     vec3 ycbcr = texelFetch(input_texture, ivec2(texture_coordinates), 0).rgb;
-    output_color = yuv2rgba(ycbcr);
+    output_color = yuv2rgba(vec4(ycbcr, 1.0));
 }
+
+
+
+
 )";

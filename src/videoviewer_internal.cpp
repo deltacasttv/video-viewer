@@ -513,8 +513,6 @@ void VideoViewer_Internal::render()
     m_compute_shader->set_int("texture_width", m_texture_width);
     m_compute_shader->set_int("texture_height", m_texture_height);
     m_compute_shader->set_int("input_texture", 0);
-    m_compute_shader->set_int("output_width", m_window_width);
-    m_compute_shader->set_int("output_height", m_window_height);
     m_compute_shader->set_bool("bt_709", true);
 
     // Draw the triangle

@@ -5,18 +5,15 @@ out vec4 output_color;
 
 uniform sampler2D input_texture;
 
-uniform int output_width;
-uniform int output_height;
-
 uniform bool bt_709;
 
 vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
-    rgba.x = 1.164 * (yuvk.x - (16.0 / 255.0)) + ((float(bt_709) * 1.793) + (float(!bt_709)) * (1.596)) * (yuvk.z - (128.0 / 255.0));
-    rgba.y = 1.164 * (yuvk.x - (16.0 / 255.0)) - ((float(bt_709) * 0.534) + (float(!bt_709)) * (0.813)) * (yuvk.z - (128.0 / 255.0)) - 0.213 * (yuvk.y - (128.0 / 255.0));
-    rgba.z = 1.164 * (yuvk.x - (16.0 / 255.0)) + ((float(bt_709) * 2.115) + (float(!bt_709)) * (2.018)) * (yuvk.y - (128.0 / 255.0));
+    rgba.x = 1.164 * (yuvk.x - 16.0 / 255.0) + ((float(bt_709) * 1.793) + (float(!bt_709)) * (1.596)) * (yuvk.z - 128.0 / 255.0);
+    rgba.y = 1.164 * (yuvk.x - 16.0 / 255.0) - ((float(bt_709) * 0.534) + (float(!bt_709)) * (0.813)) * (yuvk.z - 128.0 / 255.0) - 0.213 * (yuvk.y - 128.0 / 255.0);
+    rgba.z = 1.164 * (yuvk.x - 16.0 / 255.0) + ((float(bt_709) * 2.115) + (float(!bt_709)) * (2.018)) * (yuvk.y - 128.0 / 255.0);
     rgba.w = 1.0;
     return rgba;
 }
@@ -97,6 +94,6 @@ void main() {
         yuvk.z = ((mod(uyvy.y * 255.0,16.0) * 64.0) + (uyvy.z * 255.0 / 4.0)) / 1023.0;
     }
 
-   output_color = yuv2rgba(yuvk);
+    output_color = yuv2rgba(yuvk);
 }
 )";
