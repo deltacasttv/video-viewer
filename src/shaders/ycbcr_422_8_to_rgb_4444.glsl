@@ -3,6 +3,9 @@ constexpr char const * fragment_shader_ycbcr_422_8_to_rgb_44444 = R"(#version 41
 in vec2 texture_coordinates;
 out vec4 output_color;
 
+uniform int texture_width;
+uniform int texture_height;
+
 uniform sampler2D input_texture;
 
 uniform bool bt_709;
@@ -32,11 +35,10 @@ vec4 yuv2rgba(vec4 yuvk)
 }
 
 void main() {
-    ivec2 texture_size = textureSize(input_texture, 0);
-    ivec2 texture_coords = ivec2(texture_size.x * texture_coordinates.x, texture_size.y * texture_coordinates.y);
+    ivec2 texture_coords = ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height));
     bool is_odd = (texture_coords.x % 2) == 1;
 
-    vec4 ycbcr = texelFetch(input_texture, ivec2(round(texture_coordinates.x / 2.0), round(texture_coordinates.y)), 0);
+    vec4 ycbcr = texelFetch(input_texture, ivec2(round(texture_coords.x / 2.0), round(texture_coords.y)), 0);
     if(is_odd)
     {
         output_color = yuv2rgba(vec4(ycbcr.xyz, 1.0));

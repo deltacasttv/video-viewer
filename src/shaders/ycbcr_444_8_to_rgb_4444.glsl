@@ -3,6 +3,9 @@ constexpr char const * fragment_shader_ycbcr_444_8_to_rgb_44444 = R"(#version 41
 in vec2 texture_coordinates;
 out vec4 output_color;
 
+uniform int texture_width;
+uniform int texture_height;
+
 uniform sampler2D input_texture;
 
 uniform bool bt_709;
@@ -32,11 +35,7 @@ vec4 yuv2rgba(vec4 yuvk)
 }
 
 void main() {
-    vec3 ycbcr = texelFetch(input_texture, ivec2(texture_coordinates), 0).rgb;
+    vec3 ycbcr = texelFetch(input_texture, ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height)), 0).rgb;
     output_color = yuv2rgba(vec4(ycbcr, 1.0));
 }
-
-
-
-
 )";

@@ -3,6 +3,9 @@ constexpr char const * fragment_shader_ycbcr_422_10_be_to_rgb_44444 = R"(#versio
 in vec2 texture_coordinates;
 out vec4 output_color;
 
+uniform int texture_width;
+uniform int texture_height;
+
 uniform sampler2D input_texture;
 
 uniform bool bt_709;
@@ -21,7 +24,7 @@ vec4 yuv2rgba(vec4 yuvk)
 void main() {
 
     ivec2 texture_size = textureSize(input_texture, 0);
-    ivec2 coords = ivec2(texture_coordinates);
+    ivec2 coords = ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height));
 
     vec4 uyvy;
     vec4 uyvy2;

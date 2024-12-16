@@ -72,8 +72,9 @@ namespace Deltacast
       GLFWwindow* m_window{nullptr};
       GLuint m_texture_from_buffer{0};
       GLuint m_texture_to_render{0};
-      GLuint m_compute_framebuffer{0};
-      GLuint m_vertex_array{0};
+      GLuint m_conversion_framebuffer{0};
+      GLuint m_conversion_vertex_array{0};
+      GLuint m_render_vertex_array{0};
       GLuint m_index_buffer_object{0};
       GLuint m_vertex_buffer_object{0};
       uint32_t m_window_width{0};

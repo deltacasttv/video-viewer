@@ -14,8 +14,7 @@
  */
 
 #include "videoviewer_internal.hpp"
-#include "shaders/simple_vertices.glsl"
-#include "shaders/flip_vertices.glsl"
+#include "shaders/vertices.glsl"
 #include "shaders/render.glsl"
 #include "shaders/ycbcr_422_8_to_rgb_4444.glsl"
 #include "shaders/rgb_444_8_to_rgb_4444.glsl"
@@ -46,14 +45,15 @@ using namespace Deltacast;
 struct Vertex
 {
    glm::vec2 position;
-   glm::vec2 texcoord;
+   glm::vec2 texture_coordinate;
+   glm::vec2 flip_texture_coordinate;
 };
 
 const std::vector<Vertex> vertices = {
-    {{-1.0f, -1.0f},  {0.0f, 0.0f}}, // {triangle vertices x, y} , {texture x, y}
-    {{1.0f, -1.0f},  {1.0f, 0.0f}},
-    {{1.0f, 1.0f},  {1.0f, 1.0f}},
-    {{-1.0f, 1.0f},  {0.0f, 1.0f}},
+    {{-1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f}}, // {triangle vertices x, y} , {texture x, y}, {flip texture x, y}
+    {{1.0f, -1.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
+    {{1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}},
+    {{-1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f}},
 };
 
 const std::vector<uint16_t> indices = {
@@ -106,7 +106,8 @@ void VideoViewer_Internal::delete_vertexes()
    GL_CHECK(glDeleteBuffers, 1, &m_vertex_buffer_object);
 
    GL_CHECK(glBindVertexArray, 0);
-   GL_CHECK(glDeleteVertexArrays, 1, &m_vertex_array);
+   GL_CHECK(glDeleteVertexArrays, 1, &m_render_vertex_array);
+   GL_CHECK(glDeleteVertexArrays, 1, &m_conversion_vertex_array);
 }
 
 
@@ -314,17 +315,18 @@ bool VideoViewer_Internal::release()
 
 void VideoViewer_Internal::create_shaders(const char* compute_shader_name)
 {
-   m_conversion_shader->compile(std::string(vertex_shader_flip_vertices), std::string(compute_shader_name));
-   m_render_shader->compile(std::string(vertex_shader_simple_vertices), std::string(fragment_shader_render));
+   m_conversion_shader->compile(std::string(vertex_shader_vertices), std::string(compute_shader_name));
+   m_render_shader->compile(std::string(vertex_shader_vertices), std::string(fragment_shader_render));
 }
 
 void VideoViewer_Internal::create_vertexes()
 {
-   GL_CHECK(glGenVertexArrays, 1, &m_vertex_array);
+   GL_CHECK(glGenVertexArrays, 1, &m_render_vertex_array);
+   GL_CHECK(glGenVertexArrays, 1, &m_conversion_vertex_array);
    GL_CHECK(glGenBuffers, 1, &m_vertex_buffer_object);
    GL_CHECK(glGenBuffers, 1, &m_index_buffer_object);
 
-   GL_CHECK(glBindVertexArray, m_vertex_array);
+   GL_CHECK(glBindVertexArray, m_render_vertex_array);
    
    GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, m_index_buffer_object);
    GL_CHECK(glBufferData, GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
@@ -335,17 +337,26 @@ void VideoViewer_Internal::create_vertexes()
    GL_CHECK(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
    GL_CHECK(glEnableVertexAttribArray, 0);
 
-   GL_CHECK(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texcoord));
+   GL_CHECK(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coordinate));
    GL_CHECK(glEnableVertexAttribArray, 1);
 
-   GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
+   GL_CHECK(glBindVertexArray, m_conversion_vertex_array);
+   GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, m_vertex_buffer_object);
+   GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, m_index_buffer_object);
+
+   GL_CHECK(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+   GL_CHECK(glEnableVertexAttribArray, 0);
+
+   GL_CHECK(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, flip_texture_coordinate));
+   GL_CHECK(glEnableVertexAttribArray, 1);
+
    GL_CHECK(glBindVertexArray, 0);
 }
 
 void VideoViewer_Internal::create_framebuffers()
 {
-   GL_CHECK(glGenFramebuffers, 1, &m_compute_framebuffer);
-   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_compute_framebuffer);
+   GL_CHECK(glGenFramebuffers, 1, &m_conversion_framebuffer);
+   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_conversion_framebuffer);
    GL_CHECK(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture_to_render, 0);
    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
 
@@ -491,9 +502,9 @@ void VideoViewer_Internal::render()
     m_window_width = g_window_width;
     m_window_height = g_window_height;
    // Bind the framebuffer for offscreen rendering
-    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_compute_framebuffer);
+    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_conversion_framebuffer);
     GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
-    GL_CHECK(glBindVertexArray, m_vertex_array);
+    GL_CHECK(glBindVertexArray, m_conversion_vertex_array);
     GL_CHECK(glClear, GL_COLOR_BUFFER_BIT);
 
     // Use the compute shader
@@ -525,6 +536,7 @@ void VideoViewer_Internal::render()
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
     GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
+    GL_CHECK(glBindVertexArray, m_render_vertex_array);
 
     // Use the render shader
     m_render_shader->use();
