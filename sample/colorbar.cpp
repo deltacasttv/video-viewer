@@ -183,6 +183,7 @@ void ColorBar::init_ycbcr_422_10_be(int width, int height)
 
 void ColorBar::init_ycbcr422_8(int width, int height)
 {
+   uint32_t color[]= { V208_WHITE75, V208_YELLOW75, V208_CYAN75, V208_GREEN75, V208_MAGENTA75, V208_RED75, V208_BLUE75, V208_BLACK75 };
    m_datasize = (uint64_t)width * height * 2;
    m_pattern = new uint8_t[m_datasize];
 
@@ -190,28 +191,14 @@ void ColorBar::init_ycbcr422_8(int width, int height)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-            if (x < 1 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_WHITE75;
-            else if (x < 2 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_YELLOW75;
-            else if (x < 3 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_CYAN75;
-            else if (x < 4 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_GREEN75;
-            else if (x < 5 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_MAGENTA75;
-            else if (x < 6 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_RED75;
-            else if (x < 7 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_BLUE75;
-            else if (x < 8 * (width / 8))
-               *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = V208_BLACK75;
+         *(uint32_t*)(m_pattern + (x * 2) + (y * width * 2)) = color[(x * 8) / width];
       }
    }
 }
 
 void ColorBar::init_ycbcr_444_8(int width, int height)
 {
+   uint32_t color[] = { Y444_WHITE100_Q, Y444_YELLOW100_Q, Y444_CYAN100_Q, Y444_GREEN100_Q, Y444_MAGENTA100_Q, Y444_RED100_Q, Y444_BLUE100_Q, Y444_BLACK100_Q };
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
@@ -219,29 +206,14 @@ void ColorBar::init_ycbcr_444_8(int width, int height)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         if (x < 1 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_WHITE100_Q;
-         else if (x < 2 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_YELLOW100_Q;
-         else if (x < 3 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_CYAN100_Q;
-         else if (x < 4 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_GREEN100_Q;
-         else if (x < 5 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_MAGENTA100_Q;
-         else if (x < 6 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_RED100_Q;
-         else if (x < 7 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_BLUE100_Q;
-         else if (x < 8 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = Y444_BLACK100_Q;
+         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = color[(x * 8) / width];
       }
    }
-
 }
 
 void ColorBar::init_rgb_444_8(int width, int height)
 {
+   uint32_t color[] = { R444_WHITE100_Q, R444_YELLOW100_Q, R444_CYAN100_Q, R444_GREEN100_Q, R444_MAGENTA100_Q, R444_RED100_Q, R444_BLUE100_Q, R444_BLACK100_Q };
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
@@ -249,28 +221,14 @@ void ColorBar::init_rgb_444_8(int width, int height)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         if (x < 1 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_WHITE100_Q;
-         else if (x < 2 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_YELLOW100_Q;
-         else if (x < 3 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_CYAN100_Q;
-         else if (x < 4 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_GREEN100_Q;
-         else if (x < 5 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_MAGENTA100_Q;
-         else if (x < 6 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_RED100_Q;
-         else if (x < 7 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_BLUE100_Q;
-         else if (x < 8 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_BLACK100_Q;
+         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) =color[(x * 8) / width];
       }
    }
 }
 
 void ColorBar::init_bgr_444_8(int width, int height)
 {
+   uint32_t color[] = { BGR444_WHITE100_Q, BGR444_YELLOW100_Q, BGR444_CYAN100_Q, BGR444_GREEN100_Q, BGR444_MAGENTA100_Q, BGR444_RED100_Q, BGR444_BLUE100_Q, BGR444_BLACK100_Q };
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
@@ -278,22 +236,7 @@ void ColorBar::init_bgr_444_8(int width, int height)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         if (x < 1 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_WHITE100_Q;
-         else if (x < 2 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_YELLOW100_Q;
-         else if (x < 3 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_CYAN100_Q;
-         else if (x < 4 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_GREEN100_Q;
-         else if (x < 5 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_MAGENTA100_Q;
-         else if (x < 6 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_RED100_Q;
-         else if (x < 7 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_BLUE100_Q;
-         else if (x < 8 * (width / 8))
-            *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = BGR444_BLACK100_Q;
+         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = color[(x * 8) / width];
       }
    }
 
@@ -301,6 +244,7 @@ void ColorBar::init_bgr_444_8(int width, int height)
 
 void ColorBar::init_bgr_444_8_le_msb(int width, int height)
 {
+   uint32_t color[] = { BGR444_WHITE100_Q, BGR444_YELLOW100_Q, BGR444_CYAN100_Q, BGR444_GREEN100_Q, BGR444_MAGENTA100_Q, BGR444_RED100_Q, BGR444_BLUE100_Q, BGR444_BLACK100_Q };
    m_datasize = (uint32_t)width * height * 4;
    m_pattern = new uint8_t[m_datasize];
    auto m_pattern_32 = (uint32_t*)m_pattern;
@@ -309,22 +253,7 @@ void ColorBar::init_bgr_444_8_le_msb(int width, int height)
    {
       for (uint32_t y = 0; y < height; y++)
       {
-         if (x < 1 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_WHITE100_Q;
-         else if (x < 2 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_YELLOW100_Q;
-         else if (x < 3 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_CYAN100_Q;
-         else if (x < 4 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_GREEN100_Q;
-         else if (x < 5 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_MAGENTA100_Q;
-         else if (x < 6 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_RED100_Q;
-         else if (x < 7 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_BLUE100_Q;
-         else if (x < 8 * (width / 8))
-            *(m_pattern_32 + x + y * width) = BGR444_BLACK100_Q;
+         *(m_pattern_32 + x + y * width) = color[(x * 8) / width];
       }
    }
 }
