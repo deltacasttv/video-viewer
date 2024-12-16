@@ -176,7 +176,7 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
 bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format)
 {
    uint64_t input_buffer_size = 0;
-   const char* compute_shader_name = "";
+   const char* conversion_shader_name = "";
 
    m_texture_width = texture_width;
    m_texture_height = texture_height;
@@ -194,7 +194,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 2;
-         compute_shader_name = fragment_shader_ycbcr_422_8_to_rgb_44444;
+         conversion_shader_name = fragment_shader_ycbcr_422_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::rgb_444_8:
@@ -208,7 +208,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGB;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
-         compute_shader_name = fragment_shader_rgb_444_8_to_rgb_44444;
+         conversion_shader_name = fragment_shader_rgb_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::bgr_444_8:
@@ -222,7 +222,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_BGR;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
-         compute_shader_name = fragment_shader_bgr_444_8_to_rgb_44444;
+         conversion_shader_name = fragment_shader_bgr_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
@@ -236,7 +236,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGB;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
-         compute_shader_name = fragment_shader_ycbcr_444_8_to_rgb_44444;
+         conversion_shader_name = fragment_shader_ycbcr_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::bgr_444_8_le_msb:
@@ -245,7 +245,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 4;
-         compute_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
+         conversion_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_be:
@@ -260,7 +260,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
-         compute_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
+         conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
@@ -280,7 +280,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_height = static_cast<uint32_t>(m_texture_height / 3);
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
-         compute_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
+         conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
          break;
       default:
@@ -289,7 +289,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 
    std::lock_guard<std::mutex> guard(m_rendering_mutex);
 
-   create_shaders(compute_shader_name);
+   create_shaders(conversion_shader_name);
    create_textures();
    create_vertexes();
    create_framebuffers();
@@ -313,9 +313,9 @@ bool VideoViewer_Internal::release()
    return true;
 }
 
-void VideoViewer_Internal::create_shaders(const char* compute_shader_name)
+void VideoViewer_Internal::create_shaders(const char* conversion_shader_name)
 {
-   m_conversion_shader->compile(std::string(vertex_shader_vertices), std::string(compute_shader_name));
+   m_conversion_shader->compile(std::string(vertex_shader_vertices), std::string(conversion_shader_name));
    m_render_shader->compile(std::string(vertex_shader_vertices), std::string(fragment_shader_render));
 }
 

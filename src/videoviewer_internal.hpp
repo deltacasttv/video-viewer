@@ -60,7 +60,7 @@ namespace Deltacast
       void create_vertexes();
       void create_textures();
       void create_framebuffers();
-      void create_shaders(const char* compute_shader_name);
+      void create_shaders(const char* conversion_shader_name);
       void delete_texture();
       void delete_vertexes();
       void delete_framebuffers();
