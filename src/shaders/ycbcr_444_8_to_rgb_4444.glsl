@@ -14,8 +14,8 @@ vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
-    float y = yuvk.y- (16.0 / 255.0);
-    float cb = yuvk.x - (128.0 / 255.0);
+    float y = yuvk.x- (16.0 / 255.0);
+    float cb = yuvk.y - (128.0 / 255.0);
     float cr = yuvk.z - (128.0 / 255.0);
 
     if(bt_709)
@@ -36,6 +36,6 @@ vec4 yuv2rgba(vec4 yuvk)
 
 void main() {
     vec3 ycbcr = texelFetch(input_texture, ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height)), 0).rgb;
-    output_color = yuv2rgba(vec4(ycbcr, 1.0));
+    output_color = yuv2rgba(vec4(ycbcr.y, ycbcr.x, ycbcr.z, 1.0));
 }
 )";

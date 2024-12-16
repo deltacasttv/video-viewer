@@ -14,10 +14,23 @@ vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
-    rgba.x = 1.164 * (yuvk.x - 16.0 / 255.0) + ((float(bt_709) * 1.793) + (float(!bt_709)) * (1.596)) * (yuvk.z - 128.0 / 255.0);
-    rgba.y = 1.164 * (yuvk.x - 16.0 / 255.0) - ((float(bt_709) * 0.534) + (float(!bt_709)) * (0.813)) * (yuvk.z - 128.0 / 255.0) - 0.213 * (yuvk.y - 128.0 / 255.0);
-    rgba.z = 1.164 * (yuvk.x - 16.0 / 255.0) + ((float(bt_709) * 2.115) + (float(!bt_709)) * (2.018)) * (yuvk.y - 128.0 / 255.0);
-    rgba.w = 1.0;
+    float y = yuvk.x- (16.0 / 255.0);
+    float cb = yuvk.y - (128.0 / 255.0);
+    float cr = yuvk.z - (128.0 / 255.0);
+
+    if(bt_709)
+    {
+        rgba.x = 1.164 * y + 1.793 * cr;
+        rgba.y = 1.164 * y - 0.534 * cb - 0.213 * cr;
+        rgba.z = 1.164 * y + 2.115 * cb;
+    }
+    else
+    {
+        rgba.x = 1.164 * y + 1.596 * cr;
+        rgba.y = 1.164 * y - 0.813 * cr - 0.391 * cb;
+        rgba.z = 1.164 * y + 2.018 * cb;
+    }
+    rgba.a = 1.0;
     return rgba;
 }
 
