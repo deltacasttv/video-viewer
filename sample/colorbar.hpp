@@ -45,7 +45,7 @@ namespace Deltacast
          reserved_rgb_444_12_be, /*< RGB 4:4:4 12bit big endian without any padding */
          reserved_rgb_444_16_le, /*< RGB 4:4:4 16bit little endian without any padding */
          reserved_rgb_444_16_be, /*< RGB 4:4:4 12bit big endian without any padding */
-         bgr_444_8_le_msb,
+         bgr_444_8_le_msb, /*< BGR 4:4:4 8bit little endian with msb padding (30/32 bits) */
          bgr_444_8, /*< BGR 4:4:4 8bit without any padding */
          nb_pixel_format
       };

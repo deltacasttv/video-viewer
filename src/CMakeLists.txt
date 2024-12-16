@@ -47,7 +47,6 @@ if(UNIX)
     )
 endif()
 
-target_compile_features(video-viewer PUBLIC cxx_std_11)
 set_target_properties(video-viewer PROPERTIES CXX_EXTENSIONS OFF)
 
 set_target_properties(video-viewer PROPERTIES PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/videoviewer/videoviewer.h)

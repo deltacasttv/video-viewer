@@ -54,7 +54,7 @@ typedef struct
 #define V208_BLACKMINUS2 0x0C800C80
 #define V208_BLACKPLUS2  0x14801480
 
-#define V210_HD_WHITE75   {0x200B4200,0x2D0802D0,0x200B4200,0x2D0802D0} /* 6 pixels */ // 0X00V0Y0U0 0X00Y2U1Y1 0X00U2Y3V1 0x00Y5V2Y4 -> Y0 U0 V0 (1) Y1 U0 V0 (2) Y2 U1 V1 (3) Y3 U1 V1 (4) Y4 U2 V2 (5) Y5 U2 V2 (6)
+#define V210_HD_WHITE75   {0x200B4200,0x2D0802D0,0x200B4200,0x2D0802D0} /* 6 pixels */
 #define V210_HD_YELLOW75  {0x220A80B0,0x2A02C2A0,0x0B0A8220,0x2A0882A0} /* 6 pixels */
 #define V210_HD_CYAN75    {0x0B09124C,0x24493244,0x24C910B0,0x2442C244} /* 6 pixels */
 #define V210_HD_GREEN75   {0x0D0850FC,0x2143D214,0x0FC850D0,0x21434214}  /* 6 pixels */
@@ -81,7 +81,7 @@ typedef struct
 #define YUV42210BE_BLACK_100   {0x80,0x04,0x08,0x00,0x40} /* 2 pixels - 5 bytes */
 #define YUV42210BE_BLUE_100    {0xEF,0xC7,0xF7,0xD4,0x7C} /* 2 pixels - 5 bytes */
 
-#define R444_WHITE100_Q     0x00FFFFFF  //0xFFFFFF 0x BB GG RR
+#define R444_WHITE100_Q     0x00FFFFFF  //0xFFFFFF
 #define R444_YELLOW100_Q    0x0000FFFF  //0x00FFFF
 #define R444_CYAN100_Q      0x00FFFF00  //0xFFFF00
 #define R444_GREEN100_Q     0x0000FF00  //0x00FF00
@@ -180,6 +180,7 @@ void ColorBar::init_ycbcr_422_10_be(int width, int height)
       }
    }
 }
+
 void ColorBar::init_ycbcr422_8(int width, int height)
 {
    m_datasize = (uint64_t)width * height * 2;
@@ -266,7 +267,6 @@ void ColorBar::init_rgb_444_8(int width, int height)
             *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = R444_BLACK100_Q;
       }
    }
-
 }
 
 void ColorBar::init_bgr_444_8(int width, int height)
@@ -328,7 +328,6 @@ void ColorBar::init_bgr_444_8_le_msb(int width, int height)
       }
    }
 }
-
 
 void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
 {
@@ -394,6 +393,7 @@ void ColorBar::draw_moving_line_ycbcr_422_10_le_msb(uint8_t* data, int frame_cou
 
 
 }
+
 void ColorBar::draw_moving_line_ycbcr_422_10_be(uint8_t* data, int frame_count)
 {
    DataYUV42210BE* pData_X = (DataYUV42210BE*)(data + frame_count % m_height * m_width * 5 / 2);

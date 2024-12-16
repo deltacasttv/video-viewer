@@ -65,7 +65,7 @@ static uint32_t g_window_height = 0;
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 VideoViewer_Internal::VideoViewer_Internal()
-    : m_compute_shader(std::make_unique<Shader>()),
+    : m_conversion_shader(std::make_unique<Shader>()),
       m_render_shader(std::make_unique<Shader>())
 {
 }
@@ -306,7 +306,7 @@ bool VideoViewer_Internal::release()
 
    delete_vertexes();
 
-   m_compute_shader.reset();
+   m_conversion_shader.reset();
    m_render_shader.reset();
 
    return true;
@@ -314,7 +314,7 @@ bool VideoViewer_Internal::release()
 
 void VideoViewer_Internal::create_shaders(const char* compute_shader_name)
 {
-   m_compute_shader->compile(std::string(vertex_shader_flip_vertices), std::string(compute_shader_name));
+   m_conversion_shader->compile(std::string(vertex_shader_flip_vertices), std::string(compute_shader_name));
    m_render_shader->compile(std::string(vertex_shader_simple_vertices), std::string(fragment_shader_render));
 }
 
@@ -497,7 +497,7 @@ void VideoViewer_Internal::render()
     GL_CHECK(glClear, GL_COLOR_BUFFER_BIT);
 
     // Use the compute shader
-    m_compute_shader->use();
+    m_conversion_shader->use();
 
     // Bind the texture from the pattern
     GL_CHECK(glActiveTexture, GL_TEXTURE0);
@@ -510,10 +510,10 @@ void VideoViewer_Internal::render()
     m_rendering_mutex.unlock();
 
     // Set the texture uniform
-    m_compute_shader->set_int("texture_width", m_texture_width);
-    m_compute_shader->set_int("texture_height", m_texture_height);
-    m_compute_shader->set_int("input_texture", 0);
-    m_compute_shader->set_bool("bt_709", true);
+    m_conversion_shader->set_int("texture_width", m_texture_width);
+    m_conversion_shader->set_int("texture_height", m_texture_height);
+    m_conversion_shader->set_int("input_texture", 0);
+    m_conversion_shader->set_bool("bt_709", true);
 
     // Draw the triangle
     GL_CHECK(glDrawElements, GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid *)0);

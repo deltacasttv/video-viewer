@@ -93,7 +93,7 @@ namespace Deltacast
       std::mutex m_data_mutex;
       std::vector<uint8_t> m_data;      
 
-      std::unique_ptr<Shader> m_compute_shader;
+      std::unique_ptr<Shader> m_conversion_shader;
       std::unique_ptr<Shader> m_render_shader;
 
       class Result {
