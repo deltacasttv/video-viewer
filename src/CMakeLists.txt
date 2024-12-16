@@ -4,11 +4,7 @@ add_library(video-viewer STATIC)
 
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
-if(TARGET glfw)
-    target_link_libraries(video-viewer PUBLIC glfw glm::glm)
-else()
-    message(FATAL_ERROR "The target glfw::glfw was not found.")
-endif()
+target_link_libraries(video-viewer PUBLIC glfw glm::glm)
 
 include(FetchContent)
 

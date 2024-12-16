@@ -11,21 +11,21 @@ vec4 yuv2rgba(vec4 yuvk)
 {
     vec4 rgba;
 
-    float y = (ycbcr.y * 255.0) - 16.0; // from 0-1 to 0-255
-    float cb = (ycbcr.x * 255.0) - 128.0;
-    float cr = (ycbcr.z * 255.0) - 128.0;
+    float y = yuvk.y- (16.0 / 255.0);
+    float cb = yuvk.x - (128.0 / 255.0);
+    float cr = yuvk.z - (128.0 / 255.0);
 
     if(bt_709)
     {
-        rgba.x = (1.164 * y + 1.793 * cr) / 255.0;
-        rgba.y = (1.164 * y - 0.534 * cb - 0.213 * cr) / 255.0;
-        rgba.z = (1.164 * y + 2.115 * cb) / 255.0;
+        rgba.x = 1.164 * y + 1.793 * cr;
+        rgba.y = 1.164 * y - 0.534 * cb - 0.213 * cr;
+        rgba.z = 1.164 * y + 2.115 * cb;
     }
     else
     {
-        rgba.x = (1.164 * y + 1.596 * cr) / 255.0;
-        rgba.y = (1.164 * y - 0.813 * cr - 0.391 * cb) / 255.0;
-        rgba.z = (1.164 * y + 2.018 * cb) / 255.0;
+        rgba.x = 1.164 * y + 1.596 * cr;
+        rgba.y = 1.164 * y - 0.813 * cr - 0.391 * cb;
+        rgba.z = 1.164 * y + 2.018 * cb;
     }
     rgba.a = 1.0;
     return rgba;
