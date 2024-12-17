@@ -503,7 +503,7 @@ void VideoViewer_Internal::render()
     m_window_height = g_window_height;
    // Bind the framebuffer for offscreen rendering
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_conversion_framebuffer);
-    GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
+    GL_CHECK(glViewport, 0, 0, m_texture_width, m_texture_height);
     GL_CHECK(glBindVertexArray, m_conversion_vertex_array);
     GL_CHECK(glClear, GL_COLOR_BUFFER_BIT);
 
@@ -531,7 +531,7 @@ void VideoViewer_Internal::render()
 
     // Copy the rendered texture to another texture
     GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
-    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width - 1, m_window_height, 0);
+    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_texture_width, m_texture_height, 0);
 
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);

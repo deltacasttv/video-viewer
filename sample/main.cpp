@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 
 #if !defined(__APPLE__)
    //Starting VideoViewer rendering inside a new thread   
-   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::rgb_444_8, 10, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
+   std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8, 10, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
 #else
    if(! viewer.init(800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::rgb_444_8))
    {
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 #endif
 
    //Starting Pattern Generator inside a new thread
-   std::thread pattern_generator(pattern_thread, std::ref(viewer), texture_width, texture_height, Deltacast::ColorBar::PixelFormat::rgb_444_8, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
+   std::thread pattern_generator(pattern_thread, std::ref(viewer), texture_width, texture_height, Deltacast::ColorBar::PixelFormat::bgr_444_8, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
 
    std::thread handle_key_thread(handle_key, std::ref(viewer), std::ref(stop));
 

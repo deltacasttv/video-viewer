@@ -1,3 +1,8 @@
+## 1.4.0
+
+### Changed
+- Rollback version of OpenGL to 4.1 to introduce MacOS support [issue #9, PR !23]
+
 ## 1.3.0
  
 ### Added

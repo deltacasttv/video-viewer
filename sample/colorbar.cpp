@@ -202,11 +202,15 @@ void ColorBar::init_ycbcr_444_8(int width, int height)
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
-   for (uint64_t x = 0; x < width-1; x++)
+   for (uint64_t x = 0; x < width; x++)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = color[(x * 8) / width];
+         uint32_t color_index = (x * 8) / width;
+         uint32_t color_value = color[color_index];
+         m_pattern[(x * 3) + (y * width * 3)] = (color_value >> 16) & 0xFF;
+         m_pattern[(x * 3 + 1) + (y * width * 3)] = (color_value >> 8) & 0xFF;
+         m_pattern[(x * 3 + 2) + (y * width * 3)] = color_value & 0xFF;
       }
    }
 }
@@ -217,11 +221,15 @@ void ColorBar::init_rgb_444_8(int width, int height)
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
-   for (uint64_t x = 0; x < width-1; x++)
+   for (uint64_t x = 0; x < width; x++)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) =color[(x * 8) / width];
+         uint32_t color_index = (x * 8) / width;
+         uint32_t color_value = color[color_index];
+         m_pattern[(x * 3) + (y * width * 3)] = (color_value >> 16) & 0xFF;
+         m_pattern[(x * 3 + 1) + (y * width * 3)] = (color_value >> 8) & 0xFF;
+         m_pattern[(x * 3 + 2) + (y * width * 3)] = color_value & 0xFF;
       }
    }
 }
@@ -232,11 +240,15 @@ void ColorBar::init_bgr_444_8(int width, int height)
    m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
-   for (uint64_t x = 0; x < width-1; x++)
+   for (uint64_t x = 0; x < width; x++)
    {
       for (uint64_t y = 0; y < height; y++)
       {
-         *(uint32_t*)(m_pattern + (x * 3) + (y * width * 3)) = color[(x * 8) / width];
+         uint32_t color_index = (x * 8) / width;
+         uint32_t color_value = color[color_index];
+         m_pattern[(x * 3) + (y * width * 3)] = (color_value >> 16) & 0xFF;
+         m_pattern[(x * 3 + 1) + (y * width * 3)] = (color_value >> 8) & 0xFF;
+         m_pattern[(x * 3 + 2) + (y * width * 3)] = color_value & 0xFF;
       }
    }
 
@@ -249,7 +261,7 @@ void ColorBar::init_bgr_444_8_le_msb(int width, int height)
    m_pattern = new uint8_t[m_datasize];
    auto m_pattern_32 = (uint32_t*)m_pattern;
 
-   for (uint32_t x = 0; x < width-1; x++)
+   for (uint32_t x = 0; x < width; x++)
    {
       for (uint32_t y = 0; y < height; y++)
       {
