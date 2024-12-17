@@ -531,7 +531,7 @@ void VideoViewer_Internal::render()
 
     // Copy the rendered texture to another texture
     GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
-    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width, m_window_height, 0);
+    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width - 2, m_window_height - 2, 0);
 
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
