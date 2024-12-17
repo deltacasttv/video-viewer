@@ -200,7 +200,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
       case Deltacast::VideoViewer::InputFormat::rgb_444_8:
          if (((m_texture_width * 3) % 4) != 0)
          {
-            std::cout << "Texture width not supproted in this format" << std::endl;
+            std::cout << "Texture width not supported in this format" << std::endl;
             return false;
          }
          m_internal_pixel_format = GL_RGB8;
@@ -214,7 +214,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
       case Deltacast::VideoViewer::InputFormat::bgr_444_8:
          if (((m_texture_width * 3) % 4) != 0)
          {
-            std::cout << "Texture width not supproted in this format" << std::endl;
+            std::cout << "Texture width not supported in this format" << std::endl;
             return false;
          }
          m_internal_pixel_format = GL_RGB8;
@@ -228,7 +228,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
       case Deltacast::VideoViewer::InputFormat::ycbcr_444_8:
          if (((m_texture_width * 3) % 4) != 0)
          {
-            std::cout << "Texture width not supproted in this format" << std::endl;
+            std::cout << "Texture width not supported in this format" << std::endl;
             return false;
          }
          m_internal_pixel_format = GL_RGB8;
@@ -531,7 +531,7 @@ void VideoViewer_Internal::render()
 
     // Copy the rendered texture to another texture
     GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
-    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width - 2, m_window_height - 2, 0);
+    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_window_width - 1, m_window_height, 0);
 
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
