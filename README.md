@@ -2,7 +2,9 @@
 
 Video monitoring module that manages to create a window with OpenGL context that displays incoming video data.
 
-OS Support: Windows and Linux.
+OS Support: Windows, MacOS and Linux.
+
+Opengl Cor Profile : 4.1.
 
 See https://www.deltacast.tv for more video products.
 
@@ -10,16 +12,16 @@ See https://www.deltacast.tv for more video products.
 
 VideoViewer requires some dependencies to be installed on the system:
 - glfw 3.4
+- glm 20230113
 - Python 3.x
 
 ### Retrieve dependencies with Conan (optional)
 
-To use Conan 1.x to retrieve the dependencies, create the `modules`` directory and use the install command:
+To use Conan 2.x to retrieve the dependencies, use the following command line
 
 ```shell
-mkdir /path/to/modules
-cd /path/to/modules
-conan install /path/to/video-viewer -b missing -g cmake_find_package
+cd /path/to/video-viewer
+conan install conanfile.txt -b missing
 ```
 
 ### Building with CMake
@@ -28,8 +30,8 @@ If you used Conan to retrieve your dependencies, you can use the following comma
 
 ```shell
 cd /path/to/video-viewer
-cmake -S . -B build -DCMAKE_MODULE_PATH:PATH=/path/to/modules
-cmake --build build
+cmake --preset conan-release
+cmake --build --preset conan-release
 ```
 
 
