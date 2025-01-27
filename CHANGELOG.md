@@ -1,3 +1,8 @@
+## Unreleased
+
+### Fixed
+- VideoViewer cannot be initialized again after calling the release method [issue #26, PR !27]
+
 ## 1.4.0
 
 ### Changed
