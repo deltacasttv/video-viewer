@@ -65,8 +65,6 @@ static uint32_t g_window_height = 0;
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 VideoViewer_Internal::VideoViewer_Internal()
-    : m_conversion_shader(std::make_unique<Shader>()),
-      m_render_shader(std::make_unique<Shader>())
 {
 }
 
@@ -177,6 +175,12 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 {
    uint64_t input_buffer_size = 0;
    const char* conversion_shader_name = "";
+
+   if(!m_conversion_shader)
+      m_conversion_shader = std::make_unique<Shader>();
+      
+   if(!m_render_shader)
+      m_render_shader = std::make_unique<Shader>();
 
    m_texture_width = texture_width;
    m_texture_height = texture_height;
