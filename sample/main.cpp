@@ -69,7 +69,9 @@ void pattern_thread(Deltacast::VideoViewer& viewer, int width, int height, Delta
          synchronisation_cv.notify_one();
       }
       auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
-      std::this_thread::sleep_for(frame_rate_in_ms - elapsed_time);
+      auto remaining = frame_rate_in_ms - elapsed_time;
+      if (remaining > std::chrono::milliseconds::zero())
+         std::this_thread::sleep_for(remaining);
       frame_count++;
    }
    synchronisation_cv.notify_one();
@@ -152,7 +154,9 @@ int main(int argc, char** argv)
       viewer.process_escape_key();
       viewer.render_iteration();
       auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
-      std::this_thread::sleep_for(frame_rate_in_ms - elapsed_time);
+      auto remaining = frame_rate_in_ms - elapsed_time;
+      if (remaining > std::chrono::milliseconds::zero())
+         std::this_thread::sleep_for(remaining);
    }
    stop.store(true);
    viewer.release();
