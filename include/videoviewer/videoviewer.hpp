@@ -82,7 +82,7 @@ namespace Deltacast
       /*!
       * @brief Release function that destroy opengl window and textures
       *
-      * Ensure that render_loop or render_iteration  returns before calling VV_release function.
+      * Ensure that render_loop or render_iteration  returns before calling the release() function.
       *
       * @returns the status of its execution (true = no error or false = error)
       */
