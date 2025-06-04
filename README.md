@@ -4,7 +4,7 @@ Video monitoring module that manages to create a window with OpenGL context that
 
 OS Support: Windows, MacOS and Linux.
 
-Opengl Cor Profile : 4.1.
+OpenGL Core Profile: 4.1.
 
 See https://www.deltacast.tv for more video products.
 
