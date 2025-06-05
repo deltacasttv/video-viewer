@@ -1,7 +1,15 @@
 ## Unreleased
 
 ### Fixed
+
 - Check framebuffer completeness before unbinding in `create_framebuffers()`
+- Avoid sleeping with negative durations in the render loops (#29)
+- Ensure OpenGL Framebuffers are deleted (#31)
+- Fix some typos in comments and README
+
+### Added
+- ColorBar unit test
+
 
 ## 1.4.1
 
