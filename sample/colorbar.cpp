@@ -348,24 +348,40 @@ void ColorBar::draw_moving_line_ycbcr_422_10_be(uint8_t* data, int frame_count)
 
 void ColorBar::draw_moving_line_ycbcr_444_8(uint8_t* data, int frame_count)
 {
-   for (uint64_t x = 0; x < (m_width-1); x++)
-      *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = Y444_WHITE100_Q;
-} 
+   uint8_t* line = data + ((uint64_t)frame_count % m_height) * m_width * 3;
+   for (uint64_t x = 0; x < m_width; x++)
+   {
+      line[x * 3 + 0] = (Y444_WHITE100_Q >> 16) & 0xFF;
+      line[x * 3 + 1] = (Y444_WHITE100_Q >> 8) & 0xFF;
+      line[x * 3 + 2] = Y444_WHITE100_Q & 0xFF;
+   }
+}
 
 void ColorBar::draw_moving_line_rgb_444_8(uint8_t* data, int frame_count)
 {
-   for (uint64_t x = 0; x < (m_width-1); x++)
-      *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = R444_WHITE100_Q;
+   uint8_t* line = data + ((uint64_t)frame_count % m_height) * m_width * 3;
+   for (uint64_t x = 0; x < m_width; x++)
+   {
+      line[x * 3 + 0] = (R444_WHITE100_Q >> 16) & 0xFF;
+      line[x * 3 + 1] = (R444_WHITE100_Q >> 8) & 0xFF;
+      line[x * 3 + 2] = R444_WHITE100_Q & 0xFF;
+   }
 }
 
 void ColorBar::draw_moving_line_bgr_444_8(uint8_t* data, int frame_count)
 {
-   for (uint64_t x = 0; x < (m_width-1); x++)
-      *(uint32_t*)(data + (x * 3) + ((uint64_t)frame_count % m_height) * m_width * 3) = BGR444_WHITE100_Q;
-} 
+   uint8_t* line = data + ((uint64_t)frame_count % m_height) * m_width * 3;
+   for (uint64_t x = 0; x < m_width; x++)
+   {
+      line[x * 3 + 0] = (BGR444_WHITE100_Q >> 16) & 0xFF;
+      line[x * 3 + 1] = (BGR444_WHITE100_Q >> 8) & 0xFF;
+      line[x * 3 + 2] = BGR444_WHITE100_Q & 0xFF;
+   }
+}
 
 void ColorBar::draw_moving_line_bgr_444_8_le_msb(uint8_t* data, int frame_count)
 {
-   for (uint64_t x = 0; x < (m_width-1); x++)
-      *(uint32_t*)(data + (x * 4) + ((uint64_t)frame_count % m_height) * m_width * 4) = BGR444_WHITE100_Q;
+   uint32_t* line = reinterpret_cast<uint32_t*>(data + ((uint64_t)frame_count % m_height) * m_width * 4);
+   for (uint64_t x = 0; x < m_width; x++)
+      line[x] = BGR444_WHITE100_Q;
 }

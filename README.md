@@ -34,4 +34,23 @@ cmake --preset conan-release
 cmake --build --preset conan-release
 ```
 
+### Run the sample application
+
+Once the project is configured, you can build and execute the example
+`videoviewer_sample` located in `sample/`:
+
+```shell
+cmake --build --preset conan-release --target videoviewer_sample
+./build/Release/sample/videoviewer_sample
+```
+
+### Run the tests
+
+The project provides Catch2 based tests in the `tests/` directory. After
+building, run them with CTest:
+
+```shell
+ctest --preset conan-release
+```
+
 
