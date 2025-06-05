@@ -45,7 +45,7 @@ endif()
 
 set_target_properties(video-viewer PROPERTIES CXX_EXTENSIONS OFF)
 
-set_target_properties(video-viewer PROPERTIES PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/videoviewer/videoviewer.h)
+set_target_properties(video-viewer PROPERTIES PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/videoviewer/videoviewer.hpp)
 set_target_properties(video-viewer PROPERTIES DEBUG_POSTFIX d)
 
 install(TARGETS video-viewer DESTINATION "."
