@@ -459,7 +459,9 @@ bool VideoViewer_Internal::render_loop(int frame_rate_in_ms, std::function<void(
       sync_func();
       render_iteration();
       auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
-      std::this_thread::sleep_for(frame_rate - elapsed_time);
+      auto remaining = frame_rate - elapsed_time;
+      if (remaining > std::chrono::milliseconds::zero())
+         std::this_thread::sleep_for(remaining);
    }
 
    m_rendering_active = false;

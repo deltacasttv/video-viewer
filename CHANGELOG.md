@@ -1,3 +1,8 @@
+## 1.4.2
+
+### Fixed
+- Avoid sleeping with negative durations in the render loops
+
 ## 1.4.1
 
 ### Fixed
