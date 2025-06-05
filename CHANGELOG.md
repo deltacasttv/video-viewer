@@ -1,4 +1,4 @@
-## 1.4.2
+## Unreleased
 
 ### Fixed
 - Prevent buffer overruns in color bar drawing routines

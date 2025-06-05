@@ -70,6 +70,7 @@ VideoViewer_Internal::VideoViewer_Internal()
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
+   release();
    glfwTerminate();
 }
 
@@ -106,6 +107,12 @@ void VideoViewer_Internal::delete_vertexes()
    GL_CHECK(glBindVertexArray, 0);
    GL_CHECK(glDeleteVertexArrays, 1, &m_render_vertex_array);
    GL_CHECK(glDeleteVertexArrays, 1, &m_conversion_vertex_array);
+}
+
+void VideoViewer_Internal::delete_framebuffers()
+{
+   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+   GL_CHECK(glDeleteFramebuffers, 1, &m_conversion_framebuffer);
 }
 
 
@@ -308,6 +315,8 @@ bool VideoViewer_Internal::release()
       return false;
 
    delete_texture();
+
+   delete_framebuffers();
 
    delete_vertexes();
 
