@@ -2,6 +2,8 @@
 
 ### Fixed
 - Avoid sleeping with negative durations in the render loops
+- Ensure OpenGL Framebuffers are deleted
+- Fix some typo in comments and README 
 
 ## 1.4.1
 
