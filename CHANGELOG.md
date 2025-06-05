@@ -1,3 +1,9 @@
+## 1.4.2
+
+### Fixed
+- Prevent buffer overruns in color bar drawing routines
+- Install `videoviewer.hpp` as the public header
+
 ## 1.4.1
 
 ### Fixed
