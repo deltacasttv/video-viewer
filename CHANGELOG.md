@@ -1,3 +1,8 @@
+## 1.4.2
+
+### Fixed
+- Check framebuffer completeness before unbinding in `create_framebuffers()`
+
 ## 1.4.1
 
 ### Fixed
