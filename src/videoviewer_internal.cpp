@@ -69,6 +69,7 @@ VideoViewer_Internal::VideoViewer_Internal()
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
+   release();
    glfwTerminate();
 }
 
@@ -96,13 +97,17 @@ void VideoViewer_Internal::delete_texture()
 
 void VideoViewer_Internal::delete_vertexes()
 {
+
    GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, 0);
    GL_CHECK(glDeleteBuffers, 1, &m_index_buffer_object);
+
 
    GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
    GL_CHECK(glDeleteBuffers, 1, &m_vertex_buffer_object);
 
+
    GL_CHECK(glBindVertexArray, 0);
+
    GL_CHECK(glDeleteVertexArrays, 1, &m_render_vertex_array);
    GL_CHECK(glDeleteVertexArrays, 1, &m_conversion_vertex_array);
 }

@@ -1,12 +1,16 @@
 ## Unreleased
 
 ### Fixed
+
+- Prevent buffer overruns in color bar drawing routines
+- Install `videoviewer.hpp` as the public header
 - Avoid sleeping with negative durations in the render loops (#29)
 - Ensure OpenGL Framebuffers are deleted (#31)
 - Fix some typos in comments and README
 
 ### Added
 - ColorBar unit test
+
 
 ## 1.4.1
 
