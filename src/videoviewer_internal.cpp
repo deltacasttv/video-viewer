@@ -62,7 +62,6 @@ const std::vector<uint16_t> indices = {
 
 static uint32_t g_window_width = 0;
 static uint32_t g_window_height = 0;
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 VideoViewer_Internal::VideoViewer_Internal()
 {
@@ -166,7 +165,7 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
    if (gl3wInit() != 0)
      return false;
 
-   GLFW_CHECK(glfwSetFramebufferSizeCallback, m_window, framebuffer_size_callback);
+   GLFW_CHECK(glfwSetFramebufferSizeCallback, m_window, VideoViewer_Internal::framebuffer_size_callback);
 
    return true;
 }
