@@ -2,7 +2,10 @@
 
 ### Fixed
 
-- Install videoviewer.hpp instead of videoviewer.h
+
+- Check framebuffer completeness before unbinding in `create_framebuffers()`
+- Prevent buffer overruns in color bar drawing routines
+- Install `videoviewer.hpp` as the public header
 - Avoid sleeping with negative durations in the render loops (#29)
 - Ensure OpenGL Framebuffers are deleted (#31)
 - Fix some typos in comments and README
