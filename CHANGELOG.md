@@ -1,9 +1,12 @@
-## 1.4.2
+## Unreleased
 
 ### Fixed
-- Avoid sleeping with negative durations in the render loops
-- Ensure OpenGL Framebuffers are deleted
-- Fix some typo in comments and README 
+- Avoid sleeping with negative durations in the render loops (#29)
+- Ensure OpenGL Framebuffers are deleted (#31)
+- Fix some typos in comments and README
+
+### Added
+- ColorBar unit test
 
 ## 1.4.1
 
