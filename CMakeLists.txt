@@ -13,5 +13,9 @@ project(
 )
 set(CMAKE_CXX_STANDARD 14)
 
-add_subdirectory ("src")
-add_subdirectory ("sample")
+include(CTest)
+enable_testing()
+
+add_subdirectory("src")
+add_subdirectory("sample")
+add_subdirectory("tests")

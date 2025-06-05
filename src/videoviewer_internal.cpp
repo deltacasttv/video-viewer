@@ -108,6 +108,16 @@ void VideoViewer_Internal::delete_vertexes()
    GL_CHECK(glDeleteVertexArrays, 1, &m_conversion_vertex_array);
 }
 
+void VideoViewer_Internal::delete_framebuffers()
+{
+   if (m_conversion_framebuffer != 0)
+   {
+      GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+      GL_CHECK(glDeleteFramebuffers, 1, &m_conversion_framebuffer);
+      m_conversion_framebuffer = 0;
+   }
+}
+
 
 void VideoViewer_Internal::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -310,6 +320,7 @@ bool VideoViewer_Internal::release()
    delete_texture();
 
    delete_vertexes();
+   delete_framebuffers();
 
    m_conversion_shader.reset();
    m_render_shader.reset();
@@ -448,7 +459,9 @@ bool VideoViewer_Internal::render_loop(int frame_rate_in_ms, std::function<void(
       sync_func();
       render_iteration();
       auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
-      std::this_thread::sleep_for(frame_rate - elapsed_time);
+      auto remaining = frame_rate - elapsed_time;
+      if (remaining > std::chrono::milliseconds::zero())
+         std::this_thread::sleep_for(remaining);
    }
 
    m_rendering_active = false;
