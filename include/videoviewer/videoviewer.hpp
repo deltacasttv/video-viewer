@@ -121,7 +121,7 @@ namespace Deltacast
       /*!
       * @brief Function that provides pointer to data memory space.
       *
-      * If success, this function must be followed by call to unlock_data
+      * If successful, this function must be followed by a call to unlock_data
       *
       * @returns the status of its execution (true = no error or false = error)
       */
@@ -145,7 +145,7 @@ namespace Deltacast
 
 
       /*!
-      * @brief Function that allows user to set the windows title
+      * @brief Function that allows user to set the window title
       *
       * @returns the status of its execution (true = no error or false = error)
       */
