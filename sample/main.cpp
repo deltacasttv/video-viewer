@@ -77,7 +77,7 @@ void pattern_thread(Deltacast::VideoViewer& viewer, int width, int height, Delta
    synchronisation_cv.notify_one();
 }
 
-//Limitation: For Macos, the rendering is done in the main thread
+//Limitation: For macOS, the rendering is done in the main thread
 #if !defined(__APPLE__)
 //This function is called inside a new thread that will be used to render the video
 void render_video(Deltacast::VideoViewer& viewer,int window_width, int window_height, const char* window_title, int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format, int frame_rate_in_ms, std::atomic<bool>& stop, std::condition_variable& synchronisation_cv, std::mutex& synchronisation_mutex)

@@ -100,7 +100,7 @@ namespace Deltacast
       /*!
       * @brief Render iteration that renders textures in the opengl context
       *
-      * Note: render_loop function should be preferred to this function but, in the case of the rendering must be done in the main thread (i.e. on Macos), this function can be used to make a custom loop
+      * Note: render_loop function should be preferred to this function but, in the case of the rendering must be done in the main thread (i.e. on macOS), this function can be used to make a custom loop
       * 
       * Limitation: this function should be called in the same thread that calls init to allow window events to be processed
       */
