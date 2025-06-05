@@ -362,13 +362,15 @@ void VideoViewer_Internal::create_framebuffers()
    GL_CHECK(glGenFramebuffers, 1, &m_conversion_framebuffer);
    GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_conversion_framebuffer);
    GL_CHECK(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture_to_render, 0);
-   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
 
-   if(GL_CHECK_OUTPUT(glCheckFramebufferStatus, GL_FRAMEBUFFER).value != GL_FRAMEBUFFER_COMPLETE)
+   GLenum status = GL_CHECK_OUTPUT(glCheckFramebufferStatus, GL_FRAMEBUFFER).value;
+   if(status != GL_FRAMEBUFFER_COMPLETE)
    {
       std::cout << "Framebuffer not complete" << std::endl;
       throw std::runtime_error("Framebuffer not complete");
    }
+
+   GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
 }
 
 void VideoViewer_Internal::create_textures()
