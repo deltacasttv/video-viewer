@@ -1,3 +1,8 @@
+## 1.4.2
+
+### Fixed
+- Install videoviewer.hpp instead of videoviewer.h
+
 ## 1.4.1
 
 ### Fixed
