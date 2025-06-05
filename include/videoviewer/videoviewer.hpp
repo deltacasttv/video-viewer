@@ -31,28 +31,28 @@ namespace Deltacast
          reserved_ycbcr_422_12_le_msb, /*< YCbCr 4:2:2 12bit little endian with msb padding (12/16 bits) */
          reserved_ycbcr_422_12_be, /*< YCbCr 4:2:2 12bit big endian without any padding */
          reserved_ycbcr_422_16_le, /*< YCbCr 4:2:2 16bit little endian without any padding */
-         reserved_ycbcr_422_16_be, /*< YCbCr 4:2:2 12bit big endian without any padding */
+         reserved_ycbcr_422_16_be, /*< YCbCr 4:2:2 16bit big endian without any padding */
          ycbcr_444_8, /*< YCbCr 4:4:4 8bit without any padding */
          reserved_ycbcr_444_10_le_msb, /*< YCbCr 4:2:2 10bit little endian with msb padding (30/32 bits) */
          reserved_ycbcr_444_10_be, /*< YCbCr 4:4:4 10bit big endian without any padding */
          reserved_ycbcr_444_12_le_msb, /*< YCbCr 4:4:4 12bit little endian with msb padding (12/16 bits) */
          reserved_ycbcr_444_12_be, /*< YCbCr 4:4:4 12bit big endian without any padding */
          reserved_ycbcr_444_16_le, /*< YCbCr 4:4:4 16bit little endian without any padding */
-         reserved_ycbcr_444_16_be, /*< YCbCr 4:4:4 12bit big endian without any padding */
+         reserved_ycbcr_444_16_be, /*< YCbCr 4:4:4 16bit big endian without any padding */
          rgb_444_8, /*< RGB 4:4:4 8bit without any padding */
          reserved_rgb_444_10_le_msb, /*< RGB 4:2:2 10bit little endian with msb padding (30/32 bits) */
          reserved_rgb_444_10_be, /*< RGB 4:4:4 10bit big endian without any padding */
          reserved_rgb_444_12_le_msb, /*< RGB 4:4:4 12bit little endian with msb padding (12/16 bits) */
          reserved_rgb_444_12_be, /*< RGB 4:4:4 12bit big endian without any padding */
          reserved_rgb_444_16_le, /*< RGB 4:4:4 16bit little endian without any padding */
-         reserved_rgb_444_16_be, /*< RGB 4:4:4 12bit big endian without any padding */
+         reserved_rgb_444_16_be, /*< RGB 4:4:4 16bit big endian without any padding */
          bgr_444_8, /*< BGR 4:4:4 8bit without any padding */
-         reserved_bgr_444_10_le_msb, /*< BGR 4:2:2 10bit little endian with msb padding (30/32 bits) */
+         reserved_bgr_444_10_le_msb, /*< BGR 4:4:4 10bit little endian with msb padding (30/32 bits) */
          reserved_bgr_444_10_be, /*< BGR 4:4:4 10bit big endian without any padding */
          reserved_bgr_444_12_le_msb, /*< BGR 4:4:4 12bit little endian with msb padding (12/16 bits) */
          reserved_bgr_444_12_be, /*< BGR 4:4:4 12bit big endian without any padding */
          reserved_bgr_444_16_le, /*< BGR 4:4:4 16bit little endian without any padding */
-         reserved_bgr_444_16_be, /*< BGR 4:4:4 12bit big endian without any padding */
+         reserved_bgr_444_16_be, /*< BGR 4:4:4 16bit big endian without any padding */
          bgr_444_8_le_msb, /*< BGR 4:4:4 8bit with msb padding (32 bits) */
          nb_input_format
       };
