@@ -69,7 +69,6 @@ VideoViewer_Internal::VideoViewer_Internal()
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
-   release();
    glfwTerminate();
 }
 
@@ -433,7 +432,8 @@ bool VideoViewer_Internal::window_set_title(const char* title)
 
 bool Deltacast::VideoViewer_Internal::destroy_window()
 {
-   if(m_window){
+   if(m_window){      
+      release();
       GLFW_CHECK(glfwDestroyWindow, m_window);
       return true;
    }
