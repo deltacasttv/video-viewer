@@ -16,56 +16,51 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <stdint.h>
 
 namespace Deltacast
 {
-    class VideoViewer
-    {
-     public:
-        enum class InputFormat
-        {
-            ycbcr_422_8,         /*< YCbCr 4:2:2 8bit without any padding */
-            ycbcr_422_10_le_msb, /*< YCbCr 4:2:2 10bit little endian with msb padding (30/32 bits)
-                                  */
-            ycbcr_422_10_be,     /*< YCbCr 4:2:2 10bit big endian without any padding */
-            reserved_ycbcr_422_12_le_msb, /*< YCbCr 4:2:2 12bit little endian with msb padding
-                                             (12/16 bits) */
-            reserved_ycbcr_422_12_be,     /*< YCbCr 4:2:2 12bit big endian without any padding */
-            reserved_ycbcr_422_16_le,     /*< YCbCr 4:2:2 16bit little endian without any padding */
-            reserved_ycbcr_422_16_be,     /*< YCbCr 4:2:2 16bit big endian without any padding */
-            ycbcr_444_8,                  /*< YCbCr 4:4:4 8bit without any padding */
-            reserved_ycbcr_444_10_le_msb, /*< YCbCr 4:2:2 10bit little endian with msb padding
-                                             (30/32 bits) */
-            reserved_ycbcr_444_10_be,     /*< YCbCr 4:4:4 10bit big endian without any padding */
-            reserved_ycbcr_444_12_le_msb, /*< YCbCr 4:4:4 12bit little endian with msb padding
-                                             (12/16 bits) */
-            reserved_ycbcr_444_12_be,     /*< YCbCr 4:4:4 12bit big endian without any padding */
-            reserved_ycbcr_444_16_le,     /*< YCbCr 4:4:4 16bit little endian without any padding */
-            reserved_ycbcr_444_16_be,     /*< YCbCr 4:4:4 16bit big endian without any padding */
-            rgb_444_8,                    /*< RGB 4:4:4 8bit without any padding */
-            reserved_rgb_444_10_le_msb,   /*< RGB 4:2:2 10bit little endian with msb padding (30/32
-                                             bits) */
-            reserved_rgb_444_10_be,       /*< RGB 4:4:4 10bit big endian without any padding */
-            reserved_rgb_444_12_le_msb,   /*< RGB 4:4:4 12bit little endian with msb padding (12/16
-                                             bits) */
-            reserved_rgb_444_12_be,       /*< RGB 4:4:4 12bit big endian without any padding */
-            reserved_rgb_444_16_le,       /*< RGB 4:4:4 16bit little endian without any padding */
-            reserved_rgb_444_16_be,       /*< RGB 4:4:4 16bit big endian without any padding */
-            bgr_444_8,                    /*< BGR 4:4:4 8bit without any padding */
-            reserved_bgr_444_10_le_msb,   /*< BGR 4:4:4 10bit little endian with msb padding (30/32
-                                             bits) */
-            reserved_bgr_444_10_be,       /*< BGR 4:4:4 10bit big endian without any padding */
-            reserved_bgr_444_12_le_msb,   /*< BGR 4:4:4 12bit little endian with msb padding (12/16
-                                             bits) */
-            reserved_bgr_444_12_be,       /*< BGR 4:4:4 12bit big endian without any padding */
-            reserved_bgr_444_16_le,       /*< BGR 4:4:4 16bit little endian without any padding */
-            reserved_bgr_444_16_be,       /*< BGR 4:4:4 16bit big endian without any padding */
-            bgr_444_8_le_msb,             /*< BGR 4:4:4 8bit with msb padding (32 bits) */
-            nv12,                         /*< NV12 4:2:0 8bit without any padding */
-            p010,                         /*< P010 4:2:0 10bit padded on 16 bits */
-            nb_input_format
-        };
+   class VideoViewer_Internal;
+
+   class VideoViewer
+   {
+      public:
+
+      enum class InputFormat {
+         ycbcr_422_8, /*< YCbCr 4:2:2 8bit without any padding */
+         ycbcr_422_10_le_msb, /*< YCbCr 4:2:2 10bit little endian with msb padding (30/32 bits) */
+         ycbcr_422_10_be, /*< YCbCr 4:2:2 10bit big endian without any padding */
+         reserved_ycbcr_422_12_le_msb, /*< YCbCr 4:2:2 12bit little endian with msb padding (12/16 bits) */
+         reserved_ycbcr_422_12_be, /*< YCbCr 4:2:2 12bit big endian without any padding */
+         reserved_ycbcr_422_16_le, /*< YCbCr 4:2:2 16bit little endian without any padding */
+         reserved_ycbcr_422_16_be, /*< YCbCr 4:2:2 16bit big endian without any padding */
+         ycbcr_444_8, /*< YCbCr 4:4:4 8bit without any padding */
+         reserved_ycbcr_444_10_le_msb, /*< YCbCr 4:2:2 10bit little endian with msb padding (30/32 bits) */
+         reserved_ycbcr_444_10_be, /*< YCbCr 4:4:4 10bit big endian without any padding */
+         reserved_ycbcr_444_12_le_msb, /*< YCbCr 4:4:4 12bit little endian with msb padding (12/16 bits) */
+         reserved_ycbcr_444_12_be, /*< YCbCr 4:4:4 12bit big endian without any padding */
+         reserved_ycbcr_444_16_le, /*< YCbCr 4:4:4 16bit little endian without any padding */
+         reserved_ycbcr_444_16_be, /*< YCbCr 4:4:4 16bit big endian without any padding */
+         rgb_444_8, /*< RGB 4:4:4 8bit without any padding */
+         reserved_rgb_444_10_le_msb, /*< RGB 4:2:2 10bit little endian with msb padding (30/32 bits) */
+         reserved_rgb_444_10_be, /*< RGB 4:4:4 10bit big endian without any padding */
+         reserved_rgb_444_12_le_msb, /*< RGB 4:4:4 12bit little endian with msb padding (12/16 bits) */
+         reserved_rgb_444_12_be, /*< RGB 4:4:4 12bit big endian without any padding */
+         reserved_rgb_444_16_le, /*< RGB 4:4:4 16bit little endian without any padding */
+         reserved_rgb_444_16_be, /*< RGB 4:4:4 16bit big endian without any padding */
+         bgr_444_8, /*< BGR 4:4:4 8bit without any padding */
+         reserved_bgr_444_10_le_msb, /*< BGR 4:4:4 10bit little endian with msb padding (30/32 bits) */
+         reserved_bgr_444_10_be, /*< BGR 4:4:4 10bit big endian without any padding */
+         reserved_bgr_444_12_le_msb, /*< BGR 4:4:4 12bit little endian with msb padding (12/16 bits) */
+         reserved_bgr_444_12_be, /*< BGR 4:4:4 12bit big endian without any padding */
+         reserved_bgr_444_16_le, /*< BGR 4:4:4 16bit little endian without any padding */
+         reserved_bgr_444_16_be, /*< BGR 4:4:4 16bit big endian without any padding */
+         bgr_444_8_le_msb, /*< BGR 4:4:4 8bit with msb padding (32 bits) */
+         nv12, /*< NV12 4:2:0 8bit without any padding */
+         p010, /*< P010 4:2:0 10bit padded on 16 bits */
+         nb_input_format
+      };
 
         VideoViewer();
         ~VideoViewer();
@@ -170,12 +165,14 @@ namespace Deltacast
          */
         bool window_set_title(const char* title);
 
-        /*!
-         * @brief Function that allows user to close the window if the escape key is pressed
-         * Note : must be called in the render_iteration usage case
-         * Limitation: this function should be called in the same thread that calls render_iteration
-         * to allow window events to be processed
-         */
-        void process_escape_key();
-    };
-}  // namespace Deltacast
+      /*!
+      * @brief Function that allows user to close the window if the escape key is pressed
+      * Note : must be called in the render_iteration usage case
+      * Limitation: this function should be called in the same thread that calls render_iteration to allow window events to be processed
+      */
+      void process_escape_key();
+
+   private:
+      std::unique_ptr<VideoViewer_Internal> gl_video_viewer;
+   };
+}
