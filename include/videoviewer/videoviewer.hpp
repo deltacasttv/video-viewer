@@ -17,9 +17,12 @@
 
 #include <stdint.h>
 #include <functional>
+#include <memory>
 
 namespace Deltacast
 {
+   class VideoViewer_Internal;
+
    class VideoViewer
    {
       public:
@@ -157,5 +160,8 @@ namespace Deltacast
       * Limitation: this function should be called in the same thread that calls render_iteration to allow window events to be processed
       */
       void process_escape_key();
+
+   private:
+      std::unique_ptr<VideoViewer_Internal> gl_video_viewer;
    };
 }
