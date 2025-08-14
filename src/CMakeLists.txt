@@ -17,10 +17,8 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(gl3w)
 
-
-find_package(Python COMPONENTS Interpreter REQUIRED)
-message("Executing gl3w_gen.py")
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" ${gl3w_SOURCE_DIR}/gl3w_gen.py WORKING_DIRECTORY ${gl3w_BINARY_DIR})
+set_source_files_properties(${gl3w_BINARY_DIR}/src/gl3w.c PROPERTIES GENERATED TRUE)
+set_source_files_properties(${gl3w_BINARY_DIR}/include/GL/gl3w.h PROPERTIES GENERATED TRUE)
 
 target_sources(video-viewer PRIVATE
     ${PROJECT_SOURCE_DIR}/src/videoviewer_internal.cpp
@@ -29,6 +27,8 @@ target_sources(video-viewer PRIVATE
     ${PROJECT_SOURCE_DIR}/src/shader.cpp
     ${gl3w_BINARY_DIR}/src/gl3w.c
  )
+
+add_dependencies(video-viewer gl3w)
 
 target_include_directories(video-viewer
    PUBLIC "${gl3w_BINARY_DIR}/include"
