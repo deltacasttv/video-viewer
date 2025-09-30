@@ -23,6 +23,7 @@
 #include "shaders/bgr_444_8_le_msb_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_be_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_le_msb_to_rgb_4444.glsl"
+#include "shaders/nv12_to_rgb_4444.glsl"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -92,6 +93,12 @@ void VideoViewer_Internal::delete_texture()
    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
    GL_CHECK(glDeleteTextures, 1, &m_texture_from_buffer);
    GL_CHECK(glDeleteTextures, 1, &m_texture_to_render);
+
+   if (m_texture_uv_buffer != 0)
+   {
+      GL_CHECK(glDeleteTextures, 1, &m_texture_uv_buffer);
+      m_texture_uv_buffer = 0;
+   }
 }
 
 void VideoViewer_Internal::delete_vertexes()
@@ -120,7 +127,6 @@ void VideoViewer_Internal::delete_framebuffers()
       m_conversion_framebuffer = 0;
    }
 }
-
 
 void VideoViewer_Internal::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -191,7 +197,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 
    if(!m_conversion_shader)
       m_conversion_shader = std::make_unique<Shader>();
-      
+
    if(!m_render_shader)
       m_render_shader = std::make_unique<Shader>();
 
@@ -271,7 +277,7 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
             std::cout << "Texture ratio not supported in this format" << std::endl;
             return false;
          }
-         
+
          m_internal_pixel_format = GL_RGBA8;
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
          m_internal_texture_height = m_texture_height;
@@ -291,13 +297,29 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
             std::cout << "Texture height not supported in this format" << std::endl;
             return false;
          }
-         
+
          m_internal_pixel_format = GL_RGBA8;
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2);
          m_internal_texture_height = static_cast<uint32_t>(m_texture_height / 3);
          m_internal_texture_format = GL_RGBA;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
          conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::nv12:
+         if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
+         {
+            std::cout << "Texture dimensions must be even for NV12 format" << std::endl;
+            return false;
+         }
+
+         m_internal_pixel_format = GL_R8;
+         m_internal_texture_width = m_texture_width;
+         m_internal_texture_height = m_texture_height;
+         m_internal_texture_format = GL_RED;
+
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * m_texture_height * 3 / 2;
+         conversion_shader_name = fragment_shader_nv12_to_rgb_4444;
          m_data.resize(input_buffer_size);
          break;
       default:
@@ -345,7 +367,7 @@ void VideoViewer_Internal::create_vertexes()
    GL_CHECK(glGenBuffers, 1, &m_index_buffer_object);
 
    GL_CHECK(glBindVertexArray, m_render_vertex_array);
-   
+
    GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, m_index_buffer_object);
    GL_CHECK(glBufferData, GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
 
@@ -396,7 +418,19 @@ void VideoViewer_Internal::create_textures()
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_internal_texture_width, m_internal_texture_height, 0, m_internal_texture_format, GL_UNSIGNED_BYTE, nullptr);
+
+   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_texture_width, m_texture_height, 0, m_internal_texture_format, GL_UNSIGNED_BYTE, nullptr);
+   if(m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+   {
+        GL_CHECK(glGenTextures, 1, &m_texture_uv_buffer);
+        GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_uv_buffer);
+        GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RG8, m_texture_width / 2, m_texture_height / 2, 0, GL_RG, GL_UNSIGNED_BYTE, nullptr);
+   }
+
    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
 
    // Output texture after color conversion in shaders
@@ -406,8 +440,8 @@ void VideoViewer_Internal::create_textures()
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-   GL_CHECK(glGenerateMipmap, GL_TEXTURE_2D);
    GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA8, m_texture_width, m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+   GL_CHECK(glGenerateMipmap, GL_TEXTURE_2D);
    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
 }
 
@@ -432,7 +466,7 @@ bool VideoViewer_Internal::window_set_title(const char* title)
 
 bool Deltacast::VideoViewer_Internal::destroy_window()
 {
-   if(m_window){      
+   if(m_window){
       release();
       GLFW_CHECK(glfwDestroyWindow, m_window);
       return true;
@@ -533,20 +567,35 @@ void VideoViewer_Internal::render()
     // Use the compute shader
     m_conversion_shader->use();
 
-    // Bind the texture from the pattern
-    GL_CHECK(glActiveTexture, GL_TEXTURE0);
-    GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_from_buffer);
 
     // Update the texture with new pattern data if available
     m_rendering_mutex.lock();
-    if (m_data.size() > 0)      
-         GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, GL_UNSIGNED_BYTE, m_data.data());
+    if (m_data.size() > 0)
+    {
+        GL_CHECK(glActiveTexture, GL_TEXTURE0);
+        GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_from_buffer);
+        GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, GL_UNSIGNED_BYTE, m_data.data());
+        if (m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+        {
+            GL_CHECK(glActiveTexture, GL_TEXTURE1);
+            GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_uv_buffer);
+            uint8_t* uv_data = m_data.data() + (m_texture_width * m_texture_height);
+            GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_texture_width / 2, m_texture_height / 2, GL_RG, GL_UNSIGNED_BYTE, uv_data);
+
+            // Restore active texture unit to GL_TEXTURE0
+            GL_CHECK(glActiveTexture, GL_TEXTURE0);
+        }
+    }
     m_rendering_mutex.unlock();
 
     // Set the texture uniform
     m_conversion_shader->set_int("texture_width", m_texture_width);
     m_conversion_shader->set_int("texture_height", m_texture_height);
     m_conversion_shader->set_int("input_texture", 0);
+    if (m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+    {
+        m_conversion_shader->set_int("uv_texture", 1);
+    }
     m_conversion_shader->set_bool("bt_709", true);
 
     // Draw the triangle

@@ -71,6 +71,7 @@ namespace Deltacast
 
       GLFWwindow* m_window{nullptr};
       GLuint m_texture_from_buffer{0};
+      GLuint m_texture_uv_buffer{0}; // UV texture for semi-planar format
       GLuint m_texture_to_render{0};
       GLuint m_conversion_framebuffer{0};
       GLuint m_conversion_vertex_array{0};
@@ -92,7 +93,7 @@ namespace Deltacast
       bool m_stop{false};
       bool m_rendering_active{false};
       std::mutex m_data_mutex;
-      std::vector<uint8_t> m_data;      
+      std::vector<uint8_t> m_data;
 
       std::unique_ptr<Shader> m_conversion_shader;
       std::unique_ptr<Shader> m_render_shader;
