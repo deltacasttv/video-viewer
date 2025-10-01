@@ -92,7 +92,7 @@ void render_video(Deltacast::VideoViewer& viewer,int window_width, int window_he
    }
    else
       std::cout << "VideoViewer initialization failed" << std::endl;
-   
+
    stop.store(true);
 }
 #endif
@@ -111,12 +111,12 @@ void handle_key(Deltacast::VideoViewer& viewer, std::atomic<bool>& stop)
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
    }
-   
+
    stop.store(true);
    close_keyboard();
 }
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
    std::atomic<bool> stop(false);
    std::condition_variable synchronisation_cv;
@@ -127,10 +127,10 @@ int main(int argc, char** argv)
    int texture_height = 1080;
 
 #if !defined(__APPLE__)
-   //Starting VideoViewer rendering inside a new thread   
+   //Starting VideoViewer rendering inside a new thread
    std::thread viewerthread(render_video, std::ref(viewer), 800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8, 10, std::ref(stop), std::ref(synchronisation_cv), std::ref(synchronisation_mutex));
 #else
-   if(! viewer.init(800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::rgb_444_8))
+   if(! viewer.init(800, 600, "My window", texture_width, texture_height, Deltacast::VideoViewer::InputFormat::bgr_444_8))
    {
       std::cout << "VideoViewer initialization failed" << std::endl;
       return -1;
@@ -173,4 +173,4 @@ int main(int argc, char** argv)
 #endif
 
    return 0;
-} 
+}

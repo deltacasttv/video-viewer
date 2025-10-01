@@ -23,7 +23,7 @@
 #include "shaders/bgr_444_8_le_msb_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_be_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_le_msb_to_rgb_4444.glsl"
-#include "shaders/nv12_to_rgb_4444.glsl"
+#include "shaders/yuv420_semiplanar_to_rgb_4444.glsl"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -103,14 +103,11 @@ void VideoViewer_Internal::delete_texture()
 
 void VideoViewer_Internal::delete_vertexes()
 {
-
    GL_CHECK(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, 0);
    GL_CHECK(glDeleteBuffers, 1, &m_index_buffer_object);
 
-
    GL_CHECK(glBindBuffer, GL_ARRAY_BUFFER, 0);
    GL_CHECK(glDeleteBuffers, 1, &m_vertex_buffer_object);
-
 
    GL_CHECK(glBindVertexArray, 0);
 
@@ -216,6 +213,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width / 2);
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 2;
          conversion_shader_name = fragment_shader_ycbcr_422_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -230,6 +229,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGB;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
          conversion_shader_name = fragment_shader_rgb_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -244,6 +245,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_BGR;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
          conversion_shader_name = fragment_shader_bgr_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -258,6 +261,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGB;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 3;
          conversion_shader_name = fragment_shader_ycbcr_444_8_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -267,6 +272,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * static_cast<uint64_t>(m_texture_height) * 4;
          conversion_shader_name = fragment_shader_bgr_444_8_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -282,6 +289,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
          conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -302,6 +311,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2);
          m_internal_texture_height = static_cast<uint32_t>(m_texture_height / 3);
          m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
          input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
          conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
          m_data.resize(input_buffer_size);
@@ -313,13 +324,45 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
             return false;
          }
 
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = true;
          m_internal_pixel_format = GL_R8;
          m_internal_texture_width = m_texture_width;
          m_internal_texture_height = m_texture_height;
          m_internal_texture_format = GL_RED;
+         m_uv_offset = m_internal_texture_width * m_internal_texture_height;
+         m_internal_uv_texture_format = GL_RG;
+         m_internal_uv_texture_pixel_format = GL_RG8;
+         m_internal_uv_texture_width = m_texture_width / 2;
+         m_internal_uv_texture_height = m_texture_height / 2;
 
          input_buffer_size = static_cast<uint64_t>(m_texture_width) * m_texture_height * 3 / 2;
-         conversion_shader_name = fragment_shader_nv12_to_rgb_4444;
+         conversion_shader_name = fragment_shader_yuv420_semiplanar_to_rgb_4444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::p010:
+         if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
+         {
+            std::cout << "Texture dimensions must be even for P010 format" << std::endl;
+            return false;
+         }
+
+         m_is_semi_planar = true;
+         m_internal_pixel_format = GL_R16;
+         m_internal_texture_width = m_texture_width;
+         m_internal_texture_height = m_texture_height;
+         m_internal_texture_format = GL_RED;
+         m_internal_pixel_type = GL_UNSIGNED_SHORT;
+         m_uv_offset = m_internal_texture_width * m_internal_texture_height * 2;
+         m_internal_uv_texture_format = GL_RG;
+         m_internal_uv_texture_pixel_format = GL_RG16;
+         m_internal_uv_texture_width = m_texture_width / 2;
+         m_internal_uv_texture_height = m_texture_height / 2;
+
+         // For P010 (YUV 4:2:0 16-bit), each pixel has 1.5 samples for Y and 1.5 samples for UV.
++        // Each sample is 2 bytes (16 bits), so total bytes per pixel = (1.5 + 1.5) * 2 = 6.
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * m_texture_height * 6 / 2;
+         conversion_shader_name = fragment_shader_yuv420_semiplanar_to_rgb_4444;
          m_data.resize(input_buffer_size);
          break;
       default:
@@ -419,8 +462,8 @@ void VideoViewer_Internal::create_textures()
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_texture_width, m_texture_height, 0, m_internal_texture_format, GL_UNSIGNED_BYTE, nullptr);
-   if(m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_texture_width, m_texture_height, 0, m_internal_texture_format, m_internal_pixel_type, nullptr);
+   if(m_is_semi_planar)
    {
         GL_CHECK(glGenTextures, 1, &m_texture_uv_buffer);
         GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_uv_buffer);
@@ -428,7 +471,7 @@ void VideoViewer_Internal::create_textures()
         GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, GL_RG8, m_texture_width / 2, m_texture_height / 2, 0, GL_RG, GL_UNSIGNED_BYTE, nullptr);
+        GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_uv_texture_pixel_format, m_internal_uv_texture_width, m_internal_uv_texture_height, 0, m_internal_uv_texture_format, m_internal_pixel_type, nullptr);
    }
 
    GL_CHECK(glBindTexture, GL_TEXTURE_2D, 0);
@@ -574,13 +617,13 @@ void VideoViewer_Internal::render()
     {
         GL_CHECK(glActiveTexture, GL_TEXTURE0);
         GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_from_buffer);
-        GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, GL_UNSIGNED_BYTE, m_data.data());
-        if (m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+        GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_texture_width, m_internal_texture_height, m_internal_texture_format, m_internal_pixel_type, m_data.data());
+        if (m_is_semi_planar)
         {
             GL_CHECK(glActiveTexture, GL_TEXTURE1);
             GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_uv_buffer);
-            uint8_t* uv_data = m_data.data() + (m_texture_width * m_texture_height);
-            GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_texture_width / 2, m_texture_height / 2, GL_RG, GL_UNSIGNED_BYTE, uv_data);
+            uint8_t* uv_data = m_data.data() + m_uv_offset;
+            GL_CHECK(glTexSubImage2D, GL_TEXTURE_2D, 0, 0, 0, m_internal_uv_texture_width, m_internal_uv_texture_height, m_internal_uv_texture_format, m_internal_pixel_type, uv_data);
 
             // Restore active texture unit to GL_TEXTURE0
             GL_CHECK(glActiveTexture, GL_TEXTURE0);
@@ -592,7 +635,7 @@ void VideoViewer_Internal::render()
     m_conversion_shader->set_int("texture_width", m_texture_width);
     m_conversion_shader->set_int("texture_height", m_texture_height);
     m_conversion_shader->set_int("input_texture", 0);
-    if (m_input_format == Deltacast::VideoViewer::InputFormat::nv12)
+    if (m_is_semi_planar)
     {
         m_conversion_shader->set_int("uv_texture", 1);
     }

@@ -1,4 +1,4 @@
-constexpr char const * fragment_shader_nv12_to_rgb_4444 = R"(#version 410
+constexpr char const * fragment_shader_yuv420_semiplanar_to_rgb_4444 = R"(#version 410
 
 in vec2 texture_coordinates;
 out vec4 output_color;

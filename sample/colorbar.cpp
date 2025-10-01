@@ -99,6 +99,40 @@ typedef struct
 #define BGR444_BLUE100_Q     0x000000FF  // BGR: 0x0000FF
 #define BGR444_BLACK100_Q    0x00000000  // BGR: 0x000000
 
+#define NV12_WHITE100_Y      0xFF
+#define NV12_WHITE100_UV     0x8080
+#define NV12_YELLOW100_Y     0xDB
+#define NV12_YELLOW100_UV    0x1092
+#define NV12_CYAN100_Y       0xBB
+#define NV12_CYAN100_UV      0xA610
+#define NV12_GREEN100_Y      0xAC
+#define NV12_GREEN100_UV     0x2236
+#define NV12_MAGENTA100_Y    0x6E
+#define NV12_MAGENTA100_UV   0xCADE
+#define NV12_RED100_Y        0x52
+#define NV12_RED100_UV       0x5AFF
+#define NV12_BLUE100_Y       0x2E
+#define NV12_BLUE100_UV      0xF010
+#define NV12_BLACK100_Y      0x00
+#define NV12_BLACK100_UV     0x8080
+
+#define P010_WHITE100_Y      0xEB00
+#define P010_WHITE100_UV     0x80008000
+#define P010_YELLOW100_Y     0xDB40
+#define P010_YELLOW100_UV    0x10008A40
+#define P010_CYAN100_Y       0xBC80
+#define P010_CYAN100_UV      0x99C01000
+#define P010_GREEN100_Y      0xACC0
+#define P010_GREEN100_UV     0x29C01A40
+#define P010_MAGENTA100_Y    0x4E40
+#define P010_MAGENTA100_UV   0xD640E5C0
+#define P010_RED100_Y        0x3E80
+#define P010_RED100_UV       0x6640F000
+#define P010_BLUE100_Y       0x1FC0
+#define P010_BLUE100_UV      0xF00075C0
+#define P010_BLACK100_Y      0x1000
+#define P010_BLACK100_UV     0x80008000
+
 
 ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
    m_pixel_format(pixel_format)
@@ -110,7 +144,7 @@ ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
    case PixelFormat::ycbcr_422_8:
       init_ycbcr422_8(width, height);
       break;
-   case PixelFormat::ycbcr_422_10_le_msb: 
+   case PixelFormat::ycbcr_422_10_le_msb:
       init_ycbcr_422_10_le_msb(width, height);
       break;
    case PixelFormat::ycbcr_444_8:
@@ -128,8 +162,14 @@ ColorBar::ColorBar(int width, int height, PixelFormat pixel_format):
    case PixelFormat::bgr_444_8:
       init_bgr_444_8(width, height);
       break;
+   case PixelFormat::nv12:
+      init_nv12(width, height);
+      break;
+   case PixelFormat::p010:
+      init_p010(width, height);
+      break;
    default: break;
-   }   
+   }
 }
 
 ColorBar::~ColorBar()
@@ -270,6 +310,78 @@ void ColorBar::init_bgr_444_8_le_msb(int width, int height)
    }
 }
 
+void ColorBar::init_nv12(int width, int height)
+{
+   uint8_t y_colors[] = { NV12_WHITE100_Y, NV12_YELLOW100_Y, NV12_CYAN100_Y, NV12_GREEN100_Y,
+                          NV12_MAGENTA100_Y, NV12_RED100_Y, NV12_BLUE100_Y, NV12_BLACK100_Y };
+   uint16_t uv_colors[] = { NV12_WHITE100_UV, NV12_YELLOW100_UV, NV12_CYAN100_UV, NV12_GREEN100_UV,
+                            NV12_MAGENTA100_UV, NV12_RED100_UV, NV12_BLUE100_UV, NV12_BLACK100_UV };
+
+   m_datasize = (uint64_t)width * height * 3 / 2;
+   m_pattern = new uint8_t[m_datasize];
+
+   if (m_pattern)
+   {
+      uint8_t* y_plane = m_pattern;
+      for (uint64_t y = 0; y < height; y++)
+      {
+         for (uint64_t x = 0; x < width; x++)
+         {
+            uint32_t color_index = (x * 8) / width;
+            y_plane[y * width + x] = y_colors[color_index];
+         }
+      }
+
+      uint8_t* uv_plane = m_pattern + (width * height);
+      for (uint64_t y = 0; y < height / 2; y++)
+      {
+         for (uint64_t x = 0; x < width / 2; x++)
+         {
+            uint32_t color_index = ((x * 2) * 8) / width;
+            uint16_t uv_value = uv_colors[color_index];
+            uv_plane[y * width + x * 2] = (uv_value >> 8) & 0xFF;  // U
+            uv_plane[y * width + x * 2 + 1] = uv_value & 0xFF;     // V
+         }
+      }
+   }
+}
+
+void ColorBar::init_p010(int width, int height)
+{
+   uint16_t y_colors[] = { P010_WHITE100_Y, P010_YELLOW100_Y, P010_CYAN100_Y, P010_GREEN100_Y,
+                          P010_MAGENTA100_Y, P010_RED100_Y, P010_BLUE100_Y, P010_BLACK100_Y };
+   uint32_t uv_colors[] = { P010_WHITE100_UV, P010_YELLOW100_UV, P010_CYAN100_UV, P010_GREEN100_UV,
+                            P010_MAGENTA100_UV, P010_RED100_UV, P010_BLUE100_UV, P010_BLACK100_UV };
+
+   m_datasize = (uint64_t)width * height * 6 / 2;
+   m_pattern = new uint8_t[m_datasize];
+
+   if (m_pattern)
+   {
+      uint16_t* y_plane = reinterpret_cast<uint16_t*>(m_pattern);
+      for (uint64_t y = 0; y < height; y++)
+      {
+         for (uint64_t x = 0; x < width; x++)
+         {
+            uint32_t color_index = (x * 8) / width;
+            y_plane[y * width + x] = y_colors[color_index];
+         }
+      }
+
+      uint16_t* uv_plane = reinterpret_cast<uint16_t*>(m_pattern + (width * height) * 2);
+      for (uint64_t y = 0; y < height / 2; y++)
+      {
+         for (uint64_t x = 0; x < width / 2; x++)
+         {
+            uint32_t color_index = ((x * 2) * 8) / width;
+            uint32_t uv_value = uv_colors[color_index];
+            uv_plane[y * width + x * 2] = (uv_value >> 16) & 0xFFFF;
+            uv_plane[y * width + x * 2 + 1] = uv_value & 0xFFFF;
+         }
+      }
+   }
+}
+
 void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
 {
    switch (m_pixel_format)
@@ -294,6 +406,12 @@ void ColorBar::draw_moving_line(uint8_t* data, int frame_count)
       break;
    case PixelFormat::bgr_444_8:
       draw_moving_line_bgr_444_8(data, frame_count);
+      break;
+   case PixelFormat::nv12:
+      draw_moving_line_nv12(data, frame_count);
+      break;
+   case PixelFormat::p010:
+      draw_moving_line_p010(data, frame_count);
       break;
    default: break;
    }
@@ -384,4 +502,50 @@ void ColorBar::draw_moving_line_bgr_444_8_le_msb(uint8_t* data, int frame_count)
    uint32_t* line = reinterpret_cast<uint32_t*>(data + ((uint64_t)frame_count % m_height) * m_width * 4);
    for (uint64_t x = 0; x < m_width; x++)
       line[x] = BGR444_WHITE100_Q;
+}
+
+void ColorBar::draw_moving_line_nv12(uint8_t* data, int frame_count)
+{
+   int line_y = frame_count % m_height;
+
+   uint8_t* y_plane = data;
+   uint8_t* y_line = y_plane + line_y * m_width;
+   for (uint64_t x = 0; x < m_width; x++)
+   {
+      y_line[x] = NV12_WHITE100_Y;
+   }
+
+   if (line_y % 2 == 0)
+   {
+      uint8_t* uv_plane = data + (m_width * m_height);
+      uint8_t* uv_line = uv_plane + (line_y / 2) * m_width;
+      for (uint64_t x = 0; x < m_width; x += 2)
+      {
+         uv_line[x] = (NV12_WHITE100_UV >> 8) & 0xFF;
+         uv_line[x + 1] = NV12_WHITE100_UV & 0xFF;
+      }
+   }
+}
+
+void ColorBar::draw_moving_line_p010(uint8_t* data, int frame_count)
+{
+   int line_y = frame_count % m_height;
+
+   uint16_t* y_plane = reinterpret_cast<uint16_t *>(data);
+   uint16_t* y_line = y_plane + line_y * m_width;
+   for (uint64_t x = 0; x < m_width; x++)
+   {
+      y_line[x] = P010_WHITE100_Y;
+   }
+
+   if (line_y % 2 == 0)
+   {
+      uint16_t* uv_plane = reinterpret_cast<uint16_t *>(data + (m_width * m_height * 2));
+      uint16_t* uv_line = uv_plane + (line_y / 2) * m_width;
+      for (uint64_t x = 0; x < m_width; x += 2)
+      {
+         uv_line[x] = (P010_WHITE100_UV >> 16) & 0xFFFF;
+         uv_line[x + 1] = P010_WHITE100_UV & 0xFFFF;
+      }
+   }
 }

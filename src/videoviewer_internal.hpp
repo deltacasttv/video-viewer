@@ -83,9 +83,16 @@ namespace Deltacast
       uint32_t m_texture_width{0};
       uint32_t m_texture_height{0};
       uint16_t m_internal_pixel_format{GL_RGBA8};
+      uint16_t m_internal_pixel_type{GL_UNSIGNED_BYTE};
       uint32_t m_internal_texture_width{0};
       uint32_t m_internal_texture_height{0};
       uint16_t m_internal_texture_format{GL_RGBA};
+      bool     m_is_semi_planar{false};
+      uint64_t m_uv_offset{0};
+      uint32_t m_internal_uv_texture_width{0};
+      uint32_t m_internal_uv_texture_height{0};
+      uint16_t m_internal_uv_texture_pixel_format{GL_RG8};
+      uint16_t m_internal_uv_texture_format{GL_RG};
 
 
       std::mutex m_rendering_mutex;
