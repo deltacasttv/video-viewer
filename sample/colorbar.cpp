@@ -353,7 +353,7 @@ void ColorBar::init_p010(int width, int height)
    uint32_t uv_colors[] = { P010_WHITE100_UV, P010_YELLOW100_UV, P010_CYAN100_UV, P010_GREEN100_UV,
                             P010_MAGENTA100_UV, P010_RED100_UV, P010_BLUE100_UV, P010_BLACK100_UV };
 
-   m_datasize = (uint64_t)width * height * 6 / 2;
+   m_datasize = (uint64_t)width * height * 3;
    m_pattern = new uint8_t[m_datasize];
 
    if (m_pattern)
