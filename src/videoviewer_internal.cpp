@@ -462,7 +462,7 @@ void VideoViewer_Internal::create_textures()
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    GL_CHECK(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_texture_width, m_texture_height, 0, m_internal_texture_format, m_internal_pixel_type, nullptr);
+   GL_CHECK(glTexImage2D, GL_TEXTURE_2D, 0, m_internal_pixel_format, m_internal_texture_width, m_internal_texture_height, 0, m_internal_texture_format, m_internal_pixel_type, nullptr);
    if(m_is_semi_planar)
    {
         GL_CHECK(glGenTextures, 1, &m_texture_uv_buffer);
