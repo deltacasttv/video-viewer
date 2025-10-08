@@ -360,8 +360,8 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
          m_internal_uv_texture_height = m_texture_height / 2;
 
          // For P010 (YUV 4:2:0 16-bit), each pixel has 1.5 samples for Y and 1.5 samples for UV.
-         // Each sample is 2 bytes (16 bits), so total bytes per pixel = (1.5 + 1.5) * 2 = 6.
-         input_buffer_size = static_cast<uint64_t>(m_texture_width) * m_texture_height * 6 / 2;
+         // Each sample is 2 bytes (16 bits), so total bytes per pixel = 1.5 samples per pixel * 2 bytes = 3 bytes per pixel.
+         input_buffer_size = static_cast<uint64_t>(m_texture_width) * m_texture_height * 3;
          conversion_shader_name = fragment_shader_yuv420_semiplanar_to_rgb_4444;
          m_data.resize(input_buffer_size);
          break;
