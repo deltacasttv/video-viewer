@@ -54,6 +54,8 @@ namespace Deltacast
          reserved_bgr_444_16_le, /*< BGR 4:4:4 16bit little endian without any padding */
          reserved_bgr_444_16_be, /*< BGR 4:4:4 16bit big endian without any padding */
          bgr_444_8_le_msb, /*< BGR 4:4:4 8bit with msb padding (32 bits) */
+         nv12, /*< NV12 4:2:0 8bit without any padding */
+         p010, /*< P010 4:2:0 10bit padded on 16 bits */
          nb_input_format
       };
 
@@ -101,7 +103,7 @@ namespace Deltacast
       * @brief Render iteration that renders textures in the opengl context
       *
       * Note: render_loop function should be preferred to this function but, in the case of the rendering must be done in the main thread (i.e. on macOS), this function can be used to make a custom loop
-      * 
+      *
       * Limitation: this function should be called in the same thread that calls init to allow window events to be processed
       */
       void render_iteration();
