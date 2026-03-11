@@ -1,4 +1,4 @@
-## Unreleased
+## 1.5.0
 
 ### Fixed
 
@@ -11,6 +11,7 @@
 
 ### Added
 - ColorBar unit test
+- NV12 and P010 support
 
 
 ## 1.4.1
