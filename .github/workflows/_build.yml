@@ -113,12 +113,16 @@ jobs:
       - name: Prepare library artifact
         shell: bash
         run: |
-          if [ -f build/${{ inputs.build_type }}/src/video-viewer.lib ]; then
-            cp build/src/${{ inputs.build_type }}/video-viewer.lib video-viewer-${{ inputs.os }}-release.lib
-          elif [ -f build/${{ inputs.build_type }}/src/libvideo-viewer.a ]; then
-            cp build/${{ inputs.build_type }}/src/libvideo-viewer.a video-viewer-${{ inputs.os }}-release.a
+          # single-config (Linux/macOS): build/Release/src/libvideo-viewer.a
+          # multi-config (Windows):      build/src/Release/video-viewer.lib
+          if [ -f "build/${{ inputs.build_type }}/src/libvideo-viewer.a" ]; then
+            cp "build/${{ inputs.build_type }}/src/libvideo-viewer.a" "video-viewer-${{ inputs.os }}-release.a"
+          elif [ -f "build/src/${{ inputs.build_type }}/video-viewer.lib" ]; then
+            cp "build/src/${{ inputs.build_type }}/video-viewer.lib" "video-viewer-${{ inputs.os }}-release.lib"
           else
-            echo "No library artifact found in build/${{ inputs.build_type }}/src" >&2
+            echo "No library artifact found. Searched:"
+            echo "  build/${{ inputs.build_type }}/src/libvideo-viewer.a"
+            echo "  build/src/${{ inputs.build_type }}/video-viewer.lib"
             exit 1
           fi
 
