@@ -91,17 +91,20 @@ jobs:
       - name: Select CMake preset
         shell: pwsh
         run: |
+          $buildPreset = "conan-${{ inputs.build_type == 'Release' && 'release' || 'debug' }}"
           if ("${{ inputs.os }}" -like "windows-*") {
-            "CMAKE_PRESET=conan-default" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CMAKE_CONFIGURE_PRESET=conan-default" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CMAKE_BUILD_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           } else {
-            "CMAKE_PRESET=conan-${{ inputs.build_type == 'Release' && 'release' || 'debug' }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CMAKE_CONFIGURE_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CMAKE_BUILD_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           }
 
       - name: Configure
-        run: cmake --preset ${{ env.CMAKE_PRESET }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
+        run: cmake --preset ${{ env.CMAKE_CONFIGURE_PRESET }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
 
       - name: Build
-        run: cmake --build --preset ${{ env.CMAKE_PRESET }}
+        run: cmake --build --preset ${{ env.CMAKE_BUILD_PRESET }}
 
       - name: Test
         if: inputs.build_testing && inputs.run_tests
