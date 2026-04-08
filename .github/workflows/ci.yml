@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / Release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    uses: ./.github/workflows/_build.yml
+    with:
+      os: ${{ matrix.os }}
+      artifact_name: video-viewer-${{ matrix.os }}-release
+      build_type: Release
+      build_testing: true
+      build_examples: true
+      run_tests: false

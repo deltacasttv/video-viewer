@@ -1,3 +1,18 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+- Add GitHub Actions workflows for CI and tagged releases
+- Publish built static libraries as workflow artifacts
+
+### Changed
+- Build and test on Windows, Linux and macOS in CI
+- Integrate gl3w as a linked CMake target instead of compiling generated sources directly
+
+### Fixed
+- Avoid duplicate gl3w generation race that could trigger intermittent permission errors on Windows
+
 ## 1.5.0
 
 ### Fixed
