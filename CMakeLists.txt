@@ -11,11 +11,17 @@ project(
     DESCRIPTION "VideoViewer"
     LANGUAGES CXX C
 )
-set(CMAKE_CXX_STANDARD 14)
 
-include(CTest)
-enable_testing()
+option(BUILD_TESTING "Build tests" ON)
+option(BUILD_EXAMPLES "Build samples" ON)
 
 add_subdirectory("src")
-add_subdirectory("sample")
+if(BUILD_EXAMPLES)
+    add_subdirectory("sample")
+endif()
+
+if(BUILD_TESTING)
+enable_testing()
+include(CTest)
 add_subdirectory("tests")
+endif()
