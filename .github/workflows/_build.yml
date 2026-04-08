@@ -60,6 +60,12 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install Linux system OpenGL dependencies
+        if: startsWith(inputs.os, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev
+
       - name: Install Conan
         run: pip install conan
 
@@ -75,27 +81,51 @@ jobs:
             conan-${{ inputs.os }}-${{ inputs.build_type }}-
 
       - name: Install dependencies
-        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }}
+        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }} -of build/${{ inputs.build_type }}
+
+      - name: Resolve Conan CMake preset
+        shell: pwsh
+        run: |
+          $buildType = "${{ inputs.build_type }}"
+          $presetFile = "build/$buildType/generators/CMakePresets.json"
+
+          if (-not (Test-Path $presetFile)) {
+            throw "Conan preset file not found: $presetFile"
+          }
+
+          $json = Get-Content -Raw $presetFile | ConvertFrom-Json
+          $available = @($json.configurePresets | ForEach-Object { $_.name })
+
+          $candidateByType = "conan-$($buildType.ToLower())"
+          if ($available -contains $candidateByType) {
+            $selected = $candidateByType
+          } elseif ($available -contains "conan-default") {
+            $selected = "conan-default"
+          } else {
+            throw "No supported Conan preset found in $presetFile. Available presets: $($available -join ', ')"
+          }
+
+          "CMAKE_PRESET=$selected" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Configure
-        run: cmake --preset conan-release -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
+        run: cmake --preset ${{ env.CMAKE_PRESET }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
-        run: cmake --build --preset conan-release
+        run: cmake --build --preset ${{ env.CMAKE_PRESET }}
 
       - name: Test
         if: inputs.build_testing && inputs.run_tests
-        run: ctest --test-dir build/Release --output-on-failure
+        run: ctest --test-dir build/${{ inputs.build_type }} --output-on-failure
 
       - name: Prepare library artifact
         shell: bash
         run: |
-          if [ -f build/Release/src/video-viewer.lib ]; then
-            cp build/Release/src/video-viewer.lib video-viewer-${{ inputs.os }}-release.lib
-          elif [ -f build/Release/src/libvideo-viewer.a ]; then
-            cp build/Release/src/libvideo-viewer.a video-viewer-${{ inputs.os }}-release.a
+          if [ -f build/${{ inputs.build_type }}/src/video-viewer.lib ]; then
+            cp build/${{ inputs.build_type }}/src/video-viewer.lib video-viewer-${{ inputs.os }}-release.lib
+          elif [ -f build/${{ inputs.build_type }}/src/libvideo-viewer.a ]; then
+            cp build/${{ inputs.build_type }}/src/libvideo-viewer.a video-viewer-${{ inputs.os }}-release.a
           else
-            echo "No library artifact found in build/Release/src" >&2
+            echo "No library artifact found in build/${{ inputs.build_type }}/src" >&2
             exit 1
           fi
 
