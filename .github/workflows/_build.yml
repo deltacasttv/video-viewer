@@ -114,7 +114,7 @@ jobs:
         shell: bash
         run: |
           if [ -f build/${{ inputs.build_type }}/src/video-viewer.lib ]; then
-            cp build/${{ inputs.build_type }}/src/video-viewer.lib video-viewer-${{ inputs.os }}-release.lib
+            cp build/src/${{ inputs.build_type }}/video-viewer.lib video-viewer-${{ inputs.os }}-release.lib
           elif [ -f build/${{ inputs.build_type }}/src/libvideo-viewer.a ]; then
             cp build/${{ inputs.build_type }}/src/libvideo-viewer.a video-viewer-${{ inputs.os }}-release.a
           else
