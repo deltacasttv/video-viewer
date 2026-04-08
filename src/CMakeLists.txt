@@ -15,7 +15,35 @@ FetchContent_Declare(
   SOURCE_DIR "${PROJECT_BINARY_DIR}/extern/gl3w"
 )
 
-FetchContent_MakeAvailable(gl3w)
+FetchContent_GetProperties(gl3w)
+if(NOT gl3w_POPULATED)
+    FetchContent_Populate(gl3w)
+endif()
+
+find_package(Python COMPONENTS Interpreter REQUIRED)
+
+set(GL3W_GENERATED_DIR "${PROJECT_BINARY_DIR}/_deps/gl3w-build")
+set(GL3W_GENERATED_SRC "${GL3W_GENERATED_DIR}/src/gl3w.c")
+set(GL3W_GENERATED_HDR "${GL3W_GENERATED_DIR}/include/GL/gl3w.h")
+set(GL3W_GENERATED_CORE_HDR "${GL3W_GENERATED_DIR}/include/GL/glcorearb.h")
+set(GL3W_GENERATED_KHR_HDR "${GL3W_GENERATED_DIR}/include/KHR/khrplatform.h")
+
+add_custom_command(
+    OUTPUT
+        "${GL3W_GENERATED_SRC}"
+        "${GL3W_GENERATED_HDR}"
+        "${GL3W_GENERATED_CORE_HDR}"
+        "${GL3W_GENERATED_KHR_HDR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${GL3W_GENERATED_DIR}"
+    COMMAND "${Python_EXECUTABLE}" "${gl3w_SOURCE_DIR}/gl3w_gen.py" --root "${GL3W_GENERATED_DIR}"
+    DEPENDS "${gl3w_SOURCE_DIR}/gl3w_gen.py"
+    VERBATIM
+)
+
+set_source_files_properties("${GL3W_GENERATED_SRC}" PROPERTIES GENERATED TRUE)
+
+add_library(gl3w STATIC "${GL3W_GENERATED_SRC}")
+target_include_directories(gl3w PUBLIC "${GL3W_GENERATED_DIR}/include")
 
 target_link_libraries(video-viewer PUBLIC gl3w)
 
