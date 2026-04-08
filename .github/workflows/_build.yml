@@ -80,38 +80,19 @@ jobs:
           restore-keys: |
             conan-${{ inputs.os }}-${{ inputs.build_type }}-
 
-      - name: Install dependencies
-        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }} -of build/${{ inputs.build_type }}
+      - name: Install dependencies (Linux)
+        if: startsWith(inputs.os, 'ubuntu-')
+        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 
-      - name: Resolve Conan CMake preset
-        shell: pwsh
-        run: |
-          $buildType = "${{ inputs.build_type }}"
-          $presetFile = "build/$buildType/generators/CMakePresets.json"
-
-          if (-not (Test-Path $presetFile)) {
-            throw "Conan preset file not found: $presetFile"
-          }
-
-          $json = Get-Content -Raw $presetFile | ConvertFrom-Json
-          $available = @($json.configurePresets | ForEach-Object { $_.name })
-
-          $candidateByType = "conan-$($buildType.ToLower())"
-          if ($available -contains $candidateByType) {
-            $selected = $candidateByType
-          } elseif ($available -contains "conan-default") {
-            $selected = "conan-default"
-          } else {
-            throw "No supported Conan preset found in $presetFile. Available presets: $($available -join ', ')"
-          }
-
-          "CMAKE_PRESET=$selected" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install dependencies (non-Linux)
+        if: ${{ !startsWith(inputs.os, 'ubuntu-') }}
+        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }}
 
       - name: Configure
-        run: cmake --preset ${{ env.CMAKE_PRESET }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        run: cmake --preset conan-${{ inputs.build_type == 'Release' && 'release' || 'debug' }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Build
-        run: cmake --build --preset ${{ env.CMAKE_PRESET }}
+        run: cmake --build --preset conan-${{ inputs.build_type == 'Release' && 'release' || 'debug' }}
 
       - name: Test
         if: inputs.build_testing && inputs.run_tests
