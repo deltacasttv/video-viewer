@@ -20,4 +20,6 @@ target_include_directories(test_colorbar PRIVATE
 
 target_link_libraries(test_colorbar PRIVATE Catch2::Catch2WithMain)
 
+target_compile_features(test_colorbar PRIVATE cxx_std_14)
+
 add_test(NAME test_colorbar COMMAND test_colorbar)

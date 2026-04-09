@@ -106,6 +106,10 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ env.CMAKE_BUILD_PRESET }}
 
+      - name: Run tests
+        if: inputs.run_tests
+        run: ctest --preset ${{ env.CMAKE_BUILD_PRESET }} --output-on-failure
+
       - name: Prepare library artifact
         shell: bash
         run: |

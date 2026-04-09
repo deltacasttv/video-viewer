@@ -18,9 +18,10 @@
 #include "shader.hpp"
 #include "videoviewer/videoviewer.hpp"
 
-#include <GLFW/glfw3.h>
+#define GLFW_INCLUDE_NONE // To prevent GLFW from including the OpenGL headers, since we are using GLAD
+#include <GLFW/glfw3.h> // Include GLFW only - no OpenGL stuff
+#include <glad/gl.h> // glad loads OpenGL function
 #include <functional>
-#include <glad/gl.h>
 #include <memory>
 #include <mutex>
 #include <vector>

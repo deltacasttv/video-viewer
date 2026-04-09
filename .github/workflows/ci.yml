@@ -21,3 +21,4 @@ jobs:
       build_type: Release
       build_testing: true
       build_examples: true
+      run_tests: true
