@@ -1,3 +1,15 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+- Add GitHub Actions workflows for CI and tagged releases
+- Make test and example building as optional
+
+### Changed
+- Build and test on Windows, Linux and macOS in CI
+- Remove gl3w dependency and use glad instead to use conan dependency management and avoid gl3w generation
+
 ## 1.5.0
 
 ### Fixed

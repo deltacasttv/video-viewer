@@ -1,0 +1,119 @@
+name: Build and Test (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: Runner OS (ubuntu-latest/windows-latest/macos-latest)
+        required: true
+        type: string
+      checkout_ref:
+        description: Optional git ref/tag/sha to checkout
+        required: false
+        type: string
+        default: ""
+      artifact_name:
+        description: Artifact name to upload
+        required: true
+        type: string
+      build_testing:
+        description: Enable CMake tests
+        required: false
+        type: boolean
+        default: true
+      build_examples:
+        description: Enable sample builds
+        required: false
+        type: boolean
+        default: true
+      run_tests:
+        description: Execute CTest after build
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ${{ inputs.os }}
+
+    steps:
+      - name: Checkout (default ref)
+        if: inputs.checkout_ref == ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout (custom ref)
+        if: inputs.checkout_ref != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.checkout_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Linux system OpenGL dependencies
+        if: startsWith(inputs.os, 'ubuntu-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev
+
+      - name: Install Conan
+        run: pip install conan
+
+      - name: Detect Conan profile
+        run: conan profile detect --force
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2/p
+          key: conan-${{ inputs.os }}-release-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            conan-${{ inputs.os }}-release-
+
+      - name: Install dependencies (Linux)
+        if: startsWith(inputs.os, 'ubuntu-')
+        run: conan install conanfile.txt --build missing -s build_type=Release -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+
+      - name: Install dependencies (non-Linux)
+        if: ${{ !startsWith(inputs.os, 'ubuntu-') }}
+        run: conan install conanfile.txt --build missing -s build_type=Release
+
+      - name: Configure
+        run: cmake --preset ${{ startsWith(inputs.os, 'windows-') && 'conan-default' || 'conan-release' }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
+
+      - name: Build
+        run: cmake --build --preset conan-release
+
+      - name: Run tests
+        if: inputs.run_tests
+        run: ctest --preset conan-release --output-on-failure
+
+      - name: Prepare library artifact
+        shell: bash
+        run: |
+          # single-config (Linux/macOS): build/Release/src/libvideo-viewer.a
+          # multi-config (Windows):      build/src/Release/video-viewer.lib
+          if [ -f "build/Release/src/libvideo-viewer.a" ]; then
+            cp "build/Release/src/libvideo-viewer.a" "video-viewer-${{ inputs.os }}-release.a"
+          elif [ -f "build/src/Release/video-viewer.lib" ]; then
+            cp "build/src/Release/video-viewer.lib" "video-viewer-${{ inputs.os }}-release.lib"
+          else
+            echo "No library artifact found. Searched:"
+            echo "  build/Release/src/libvideo-viewer.a"
+            echo "  build/src/Release/video-viewer.lib"
+            exit 1
+          fi
+
+      - name: Upload library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            video-viewer-${{ inputs.os }}-release.lib
+            video-viewer-${{ inputs.os }}-release.a
+          if-no-files-found: error

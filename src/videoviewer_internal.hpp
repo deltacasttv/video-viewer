@@ -15,14 +15,16 @@
 
 #pragma once
 
-#include <mutex>
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-#include <videoviewer/videoviewer.hpp>
-#include <vector>
-#include <memory>
-#include <functional>
 #include "shader.hpp"
+#include "videoviewer/videoviewer.hpp"
+
+#define GLFW_INCLUDE_NONE // To prevent GLFW from including the OpenGL headers, since we are using GLAD
+#include <GLFW/glfw3.h> // Include GLFW only - no OpenGL stuff
+#include <glad/gl.h> // glad loads OpenGL function
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 
 namespace Deltacast

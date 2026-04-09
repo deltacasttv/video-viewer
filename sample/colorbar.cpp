@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#include <fstream>
-#include <iostream>
 #include "colorbar.hpp"
 
 using namespace Deltacast;

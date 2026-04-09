@@ -24,17 +24,18 @@
 #include "shaders/ycbcr_422_10_be_to_rgb_4444.glsl"
 #include "shaders/ycbcr_422_10_le_msb_to_rgb_4444.glsl"
 #include "shaders/yuv420_semiplanar_to_rgb_4444.glsl"
+
+#include <chrono>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <thread>
-#include <chrono>
 #include <vector>
-#include <glm/glm.hpp>
 
 #if defined(WIN32) || defined(_WIN32)
 #include <Windows.h>
 #else
-#include <unistd.h>
 #include <cstring>
+#include <unistd.h>
 #endif
 
 #define GL_CHECK(func, ...) gl_check(__FILE__, __LINE__, #func, func, ##__VA_ARGS__)
@@ -179,7 +180,7 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
 
    GLFW_CHECK(glfwMakeContextCurrent, m_window);
 
-   if (gl3wInit() != 0)
+   if (!gladLoadGL(glfwGetProcAddress))
      return false;
 
    GLFW_CHECK(glfwSetFramebufferSizeCallback, m_window, VideoViewer_Internal::framebuffer_size_callback);

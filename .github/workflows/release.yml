@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release from (example: v1.5.1)"
+        required: true
+        type: string
+      publish_release:
+        description: "Publish GitHub release (false = dry run)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-assets:
+    name: Build asset (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    uses: ./.github/workflows/_build.yml
+    with:
+      os: ${{ matrix.os }}
+      checkout_ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
+      artifact_name: release-assets-${{ matrix.os }}
+      build_testing: true
+      build_examples: true
+      run_tests: false
+
+  publish:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    needs: build-assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
+
+      - name: Download built assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Build release notes from changelog
+        shell: bash
+        run: |
+          RAW_TAG="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}"
+          TAG="${RAW_TAG#v}"
+
+          extract_section() {
+            local section="$1"
+            awk -v section="$section" '
+              $0 ~ "^##[[:space:]]+\\[" section "\\][[:space:]]*$" || $0 ~ "^##[[:space:]]+" section "[[:space:]]*$" {found=1; next}
+              found && $0 ~ "^##[[:space:]]+" {exit}
+              found {print}
+            ' CHANGELOG.md
+          }
+
+          TAG_NOTES="$(extract_section "$TAG")"
+          UNRELEASED_NOTES="$(extract_section "Unreleased")"
+
+          {
+            echo "## ${RAW_TAG}"
+            echo
+            if [ -n "$(echo "$TAG_NOTES" | tr -d '[:space:]')" ]; then
+              echo "$TAG_NOTES"
+            elif [ -n "$(echo "$UNRELEASED_NOTES" | tr -d '[:space:]')" ]; then
+              echo "$UNRELEASED_NOTES"
+            else
+              echo "Automated release."
+            fi
+          } > RELEASE_NOTES.md
+
+      - name: Create GitHub release
+        if: github.event_name == 'push' || github.event.inputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            release-assets/**/*
