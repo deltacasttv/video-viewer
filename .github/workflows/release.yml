@@ -32,7 +32,6 @@ jobs:
       os: ${{ matrix.os }}
       checkout_ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
       artifact_name: release-assets-${{ matrix.os }}
-      build_type: Release
       build_testing: true
       build_examples: true
       run_tests: false

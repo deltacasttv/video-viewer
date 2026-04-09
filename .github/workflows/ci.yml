@@ -18,7 +18,6 @@ jobs:
     with:
       os: ${{ matrix.os }}
       artifact_name: video-viewer-${{ matrix.os }}-release
-      build_type: Release
       build_testing: true
       build_examples: true
       run_tests: true

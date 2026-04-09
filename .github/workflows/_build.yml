@@ -16,11 +16,6 @@ on:
         description: Artifact name to upload
         required: true
         type: string
-      build_type:
-        description: CMake build type
-        required: false
-        type: string
-        default: Release
       build_testing:
         description: Enable CMake tests
         required: false
@@ -76,53 +71,41 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.conan2/p
-          key: conan-${{ inputs.os }}-${{ inputs.build_type }}-${{ hashFiles('conanfile.txt') }}
+          key: conan-${{ inputs.os }}-release-${{ hashFiles('conanfile.txt') }}
           restore-keys: |
-            conan-${{ inputs.os }}-${{ inputs.build_type }}-
+            conan-${{ inputs.os }}-release-
 
       - name: Install dependencies (Linux)
         if: startsWith(inputs.os, 'ubuntu-')
-        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }} -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+        run: conan install conanfile.txt --build missing -s build_type=Release -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 
       - name: Install dependencies (non-Linux)
         if: ${{ !startsWith(inputs.os, 'ubuntu-') }}
-        run: conan install conanfile.txt --build missing -s build_type=${{ inputs.build_type }}
-
-      - name: Select CMake preset
-        shell: pwsh
-        run: |
-          $buildPreset = "conan-${{ inputs.build_type == 'Release' && 'release' || 'debug' }}"
-          if ("${{ inputs.os }}" -like "windows-*") {
-            "CMAKE_CONFIGURE_PRESET=conan-default" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            "CMAKE_BUILD_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          } else {
-            "CMAKE_CONFIGURE_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            "CMAKE_BUILD_PRESET=$buildPreset" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
+        run: conan install conanfile.txt --build missing -s build_type=Release
 
       - name: Configure
-        run: cmake --preset ${{ env.CMAKE_CONFIGURE_PRESET }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
+        run: cmake --preset ${{ startsWith(inputs.os, 'windows-') && 'conan-default' || 'conan-release' }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
 
       - name: Build
-        run: cmake --build --preset ${{ env.CMAKE_BUILD_PRESET }}
+        run: cmake --build --preset conan-release
 
       - name: Run tests
         if: inputs.run_tests
-        run: ctest --preset ${{ env.CMAKE_BUILD_PRESET }} --output-on-failure
+        run: ctest --preset conan-release --output-on-failure
 
       - name: Prepare library artifact
         shell: bash
         run: |
           # single-config (Linux/macOS): build/Release/src/libvideo-viewer.a
           # multi-config (Windows):      build/src/Release/video-viewer.lib
-          if [ -f "build/${{ inputs.build_type }}/src/libvideo-viewer.a" ]; then
-            cp "build/${{ inputs.build_type }}/src/libvideo-viewer.a" "video-viewer-${{ inputs.os }}-release.a"
-          elif [ -f "build/src/${{ inputs.build_type }}/video-viewer.lib" ]; then
-            cp "build/src/${{ inputs.build_type }}/video-viewer.lib" "video-viewer-${{ inputs.os }}-release.lib"
+          if [ -f "build/Release/src/libvideo-viewer.a" ]; then
+            cp "build/Release/src/libvideo-viewer.a" "video-viewer-${{ inputs.os }}-release.a"
+          elif [ -f "build/src/Release/video-viewer.lib" ]; then
+            cp "build/src/Release/video-viewer.lib" "video-viewer-${{ inputs.os }}-release.lib"
           else
             echo "No library artifact found. Searched:"
-            echo "  build/${{ inputs.build_type }}/src/libvideo-viewer.a"
-            echo "  build/src/${{ inputs.build_type }}/video-viewer.lib"
+            echo "  build/Release/src/libvideo-viewer.a"
+            echo "  build/src/Release/video-viewer.lib"
             exit 1
           fi
 
