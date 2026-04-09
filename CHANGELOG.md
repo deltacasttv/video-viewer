@@ -4,14 +4,11 @@
 
 ### Added
 - Add GitHub Actions workflows for CI and tagged releases
-- Publish built static libraries as workflow artifacts
+- Make test and example building as optional
 
 ### Changed
 - Build and test on Windows, Linux and macOS in CI
-- Integrate gl3w as a linked CMake target instead of compiling generated sources directly
-
-### Fixed
-- Avoid duplicate gl3w generation race that could trigger intermittent permission errors on Windows
+- Remove gl3w dependency and use glad instead to use conan dependency management and avoid gl3w generation
 
 ## 1.5.0
 
