@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.0.0]
 
 ### Added
 - Add GitHub Actions workflows for CI and tagged releases
