@@ -12,6 +12,8 @@ project(
     LANGUAGES CXX C
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 option(BUILD_TESTING "Build tests" ON)
 option(BUILD_EXAMPLES "Build samples" ON)
 

@@ -13,21 +13,23 @@
  * limitations under the License.
  */
 
-#include <videoviewer/videoviewer.hpp>
 #include "colorbar.hpp"
-#include <thread>
-#include <iostream>
-#include <chrono>
+
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <iostream>
+#include <thread>
+#include <videoviewer/videoviewer.hpp>
 
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #include <conio.h>
 #else
+#include "../dep/keyboard.h"
+
 #include <unistd.h>
 #include <string.h>
-#include "../dep/keyboard.h"
 #endif
 
 static const int desired_frame_rate = 60;

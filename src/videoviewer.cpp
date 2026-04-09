@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include <videoviewer/videoviewer.hpp>
+#include "videoviewer/videoviewer.hpp"
 #include "videoviewer_internal.hpp"
 
 Deltacast::VideoViewer_Internal gl_video_viewer;

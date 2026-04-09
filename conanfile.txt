@@ -1,6 +1,7 @@
 [requires]
-glfw/3.4
+glfw/[>=3.4 <4]
 glm/cci.20230113
+glad/[>=2 <3]
 [generators]
 CMakeDeps
 CMakeToolchain

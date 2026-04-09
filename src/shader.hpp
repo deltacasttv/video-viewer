@@ -14,8 +14,7 @@
  */
 
 #pragma once
-#include <GL/gl3w.h>
-
+#include <glad/gl.h>
 #include <string>
 
 class Shader

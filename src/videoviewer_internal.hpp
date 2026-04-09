@@ -15,14 +15,15 @@
 
 #pragma once
 
-#include <mutex>
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-#include <videoviewer/videoviewer.hpp>
-#include <vector>
-#include <memory>
-#include <functional>
 #include "shader.hpp"
+#include "videoviewer/videoviewer.hpp"
+
+#include <GLFW/glfw3.h>
+#include <functional>
+#include <glad/gl.h>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 
 namespace Deltacast
