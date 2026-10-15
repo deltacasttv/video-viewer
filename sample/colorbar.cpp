@@ -184,22 +184,32 @@ uint64_t ColorBar::get_datasize()
     return m_datasize;
 }
 
+// Line stride of the ycbcr_422_10_le_msb layout expected by VideoViewer (default line alignment):
+// every line starts on a new group of 6 pixels (16 bytes), the last group of a line is padded.
+static uint64_t ycbcr_422_10_le_msb_line_stride(int width)
+{
+   return ((uint64_t)width + 5) / 6 * sizeof(DataV210);
+}
+
 void ColorBar::init_ycbcr_422_10_le_msb(int width, int height)
 {
-    DataV210 color[] = { V210_HD_WHITE75,   V210_HD_YELLOW75, V210_HD_CYAN75, V210_HD_GREEN75,
-                         V210_HD_MAGENTA75, V210_HD_RED75,    V210_HD_BLUE75, V210_HD_BLACK75 };
-    m_datasize = width * height * 8 / 3;
-    m_pattern = new uint8_t[m_datasize];
-    if (m_pattern)
-    {
-        DataV210* pData_X = (DataV210*)m_pattern;
+   DataV210 color[] = { V210_HD_WHITE75,V210_HD_YELLOW75,V210_HD_CYAN75,V210_HD_GREEN75,V210_HD_MAGENTA75,V210_HD_RED75,V210_HD_BLUE75,V210_HD_BLACK75 };
+   uint64_t line_stride = ycbcr_422_10_le_msb_line_stride(width);
+   m_datasize = line_stride * height;
+   m_pattern = new uint8_t[m_datasize];
+   if (m_pattern)
+   {
+      for (uint64_t y = 0; y < height; y++)
+      {
+         DataV210* pData_X = (DataV210*)(m_pattern + y * line_stride);
 
-        for (int pixel = 0; pixel < width * height; pixel += 6)
-        {
-            *pData_X = color[(pixel % width) / (width / 8)];
+         for (uint64_t x = 0; x < width; x += 6)
+         {
+            *pData_X = color[(x * 8) / width];
             pData_X++;
-        }
-    }
+         }
+      }
+   }
 }
 
 void ColorBar::init_ycbcr_422_10_be(int width, int height)
@@ -434,30 +444,14 @@ void ColorBar::draw_moving_line_ycbcr_422_8(uint8_t* data, int frame_count)
 
 void ColorBar::draw_moving_line_ycbcr_422_10_le_msb(uint8_t* data, int frame_count)
 {
-    int line = frame_count % m_height;
+   uint64_t line = (uint64_t)frame_count % m_height;
+   DataV210* pData_X = (DataV210*)(data + line * ycbcr_422_10_le_msb_line_stride(m_width));
 
-    if (line * m_width * 8 % 3 == 0)
-    {
-        DataV210* pData_X = (DataV210*)(data + line * m_width * 8 / 3);
-        for (int x = 0; x < m_width; x += 6)
-        {
-            *pData_X = V210_HD_WHITE75;
-            pData_X++;
-        }
-    }
-    else
-    {
-        int pxl = line * m_width;
-        pxl += (6 - pxl % 6);
-
-        DataV210* pData_X = (DataV210*)(data + pxl * 8 / 3);
-
-        for (int x = 0; x < m_width - 6; x += 6)
-        {
-            *pData_X = V210_HD_WHITE75;
-            pData_X++;
-        }
-    }
+   for (int x = 0; x < m_width; x += 6)
+   {
+      *pData_X = V210_HD_WHITE75;
+      pData_X++;
+   }
 }
 
 void ColorBar::draw_moving_line_ycbcr_422_10_be(uint8_t* data, int frame_count)

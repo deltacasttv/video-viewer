@@ -74,7 +74,32 @@ const std::vector<uint16_t> indices = { 0, 1, 2, 2, 3, 0 };
 static uint32_t g_window_width = 0;
 static uint32_t g_window_height = 0;
 
-VideoViewer_Internal::VideoViewer_Internal() {}
+// Line stride (bytes from the start of a video line to the start of the next one) of the
+// ycbcr_422_10_le_msb buffer. This is the only place that defines it (its default line alignment
+// is the initial value of VideoViewer_Internal::m_line_alignment).
+//
+// 6 pixels are packed in a group of 4 little-endian 32-bit words (16 bytes, v210 order) and every
+// line starts on a new group: a line takes ceil(width / 6) groups, the last one being only partly
+// used when the width is not a multiple of 6 (1280, 2048, 4096...). With a line alignment (see
+// VideoViewer::set_line_alignment()), the line is then padded up to a multiple of that many bytes,
+// e.g. 128 for standard v210 (ceil(width / 48) * 128 bytes).
+// Without line alignment, a width that is a multiple of 6 (720, 1920, 3840...) gives width * 8 / 3
+// bytes, i.e. the same buffer as before line padding was supported; with a 128-byte alignment, so
+// does a width that is a multiple of 48.
+static uint64_t ycbcr_422_10_le_msb_line_stride(uint32_t width, uint32_t line_alignment)
+{
+   const uint64_t group_size = 16;
+   uint64_t line_stride = ((static_cast<uint64_t>(width) + 5) / 6) * group_size;
+
+   if (line_alignment > group_size)
+      line_stride = ((line_stride + line_alignment - 1) / line_alignment) * line_alignment;
+
+   return line_stride;
+}
+
+VideoViewer_Internal::VideoViewer_Internal()
+{
+}
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
@@ -199,8 +224,17 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
     return true;
 }
 
-bool VideoViewer_Internal::init(int texture_width, int texture_height,
-                                Deltacast::VideoViewer::InputFormat input_format)
+bool VideoViewer_Internal::set_line_alignment(uint32_t line_alignment)
+{
+   // 0 or a whole number of 16-byte groups, so that every line starts on a 32-bit word.
+   if ((line_alignment % 16) != 0)
+      return false;
+
+   m_line_alignment = line_alignment;
+   return true;
+}
+
+bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format)
 {
     uint64_t    input_buffer_size = 0;
     const char* conversion_shader_name = "";
@@ -303,41 +337,35 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height,
             return false;
         }
 
-        m_internal_pixel_format = GL_RGBA8;
-        m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
-        m_internal_texture_height = m_texture_height;
-        m_internal_texture_format = GL_RGBA;
-        m_internal_pixel_type = GL_UNSIGNED_BYTE;
-        m_is_semi_planar = false;
-        input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
-        conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
-        m_data.resize(input_buffer_size);
-        break;
-    case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
-        if (((m_texture_width * m_texture_height * 8) % 3) != 0)
-        {
-            std::cout << "Texture ratio not supported in this format" << std::endl;
-            return false;
-        }
-        if ((m_texture_height % 3) != 0)
-        {
-            std::cout << "Texture height not supported in this format" << std::endl;
-            return false;
-        }
+         m_internal_pixel_format = GL_RGBA8;
+         m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
+         m_internal_texture_height = m_texture_height;
+         m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
+         input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
+         conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
+      {
+         // One texture row per video line, one RGBA8 texel per 32-bit word
+         const uint64_t line_stride = ycbcr_422_10_le_msb_line_stride(m_texture_width, m_line_alignment);
 
-        m_internal_pixel_format = GL_RGBA8;
-        m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 2);
-        m_internal_texture_height = static_cast<uint32_t>(m_texture_height / 3);
-        m_internal_texture_format = GL_RGBA;
-        m_internal_pixel_type = GL_UNSIGNED_BYTE;
-        m_is_semi_planar = false;
-        input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 8) / 3);
-        conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
-        m_data.resize(input_buffer_size);
-        break;
-    case Deltacast::VideoViewer::InputFormat::nv12:
-        if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
-        {
+         m_internal_pixel_format = GL_RGBA8;
+         m_internal_texture_width = static_cast<uint32_t>(line_stride / 4);
+         m_internal_texture_height = m_texture_height;
+         m_internal_texture_format = GL_RGBA;
+         m_internal_pixel_type = GL_UNSIGNED_BYTE;
+         m_is_semi_planar = false;
+         input_buffer_size = line_stride * m_texture_height;
+         conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
+         m_data.resize(input_buffer_size);
+         break;
+      }
+      case Deltacast::VideoViewer::InputFormat::nv12:
+         if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
+         {
             std::cout << "Texture dimensions must be even for NV12 format" << std::endl;
             return false;
         }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `VideoViewer::set_line_alignment()` to display `ycbcr_422_10_le_msb` buffers whose lines are padded, e.g. to 128 bytes as in standard v210 (#24)
+
+### Fixed
+- Pixel sliding artifacts in `ycbcr_422_10_le_msb` when the width is not a multiple of 6 pixels (e.g. 1280x720, 2048x1536, 4096x2160): every line now starts on a new group of 6 pixels, so the buffer size is `ceil(width / 6) * 16 * height` bytes (unchanged for widths that are a multiple of 6), and the height no longer has to be a multiple of 3 (#24)
+
 ## [2.0.0]
 
 ### Added
