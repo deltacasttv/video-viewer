@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Document the memory layout of every supported `InputFormat` (component order, bit packing, endianness, planes), the buffer size returned by `lock_data()` and the frame size constraints of `init()`, in `videoviewer.hpp` and in a new "Input formats" section of the README (#12)
+
+### Fixed
+- Comments of the reserved 10-bit 4:4:4 formats said 4:2:2 (#12)
+
 ## [2.0.0]
 
 ### Added
