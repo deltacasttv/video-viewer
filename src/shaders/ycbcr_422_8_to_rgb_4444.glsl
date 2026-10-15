@@ -35,17 +35,21 @@ vec4 yuv2rgba(vec4 yuvk)
 }
 
 void main() {
-    ivec2 texture_coords = ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height));
-    bool is_odd = (texture_coords.x % 2) == 1;
+    // gl_FragCoord.xy is the centre (x + 0.5, y + 0.5) of the output pixel in the texture_width x texture_height
+    // conversion viewport (bottom-left origin): truncating it gives the exact pixel with integer-only math on every
+    // GPU (#42). y is flipped so that row 0 is the first line of the input buffer.
+    ivec2 coords = ivec2(int(gl_FragCoord.x), texture_height - 1 - int(gl_FragCoord.y));
+    bool is_odd = (coords.x & 1) == 1;
 
-    vec4 ycbcr = texelFetch(input_texture, ivec2(round(texture_coords.x / 2.0), round(texture_coords.y)), 0);
+    // One RGBA8 texel holds a pixel pair (UYVY): r = Cb, g = Y of the even pixel, b = Cr, a = Y of the odd pixel.
+    vec4 ycbcr = texelFetch(input_texture, ivec2(coords.x / 2, coords.y), 0);
     if(is_odd)
     {
-        output_color = yuv2rgba(vec4(ycbcr.yxz, 1.0));
+        output_color = yuv2rgba(vec4(ycbcr.wxz, 1.0));
     }
     else
     {
-        output_color = yuv2rgba(vec4(ycbcr.wxz, 1.0));
+        output_color = yuv2rgba(vec4(ycbcr.yxz, 1.0));
     }
 }
 )";

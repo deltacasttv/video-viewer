@@ -34,81 +34,41 @@ vec4 yuv2rgba(vec4 yuvk)
     return rgba;
 }
 
+// Returns texel texel_x of input line `line` as a big-endian 32-bit word: each line is one row of the RGBA8 input
+// texture and holds the bytes of the line in order, 4 per texel (r = first byte). The texel is clamped so that
+// texelFetch is always in range.
+uint read_be_word(int texel_x, int line)
+{
+    ivec2 texel = clamp(ivec2(texel_x, line), ivec2(0), textureSize(input_texture, 0) - 1);
+    // v * 255.0 is within rounding error of an integer: adding 0.5 and truncating gives the exact byte.
+    uvec4 bytes = uvec4(texelFetch(input_texture, texel, 0) * 255.0 + 0.5);
+    return (bytes.r << 24) | (bytes.g << 16) | (bytes.b << 8) | bytes.a;
+}
+
 void main() {
+    // gl_FragCoord.xy is the centre (x + 0.5, y + 0.5) of the output pixel in the texture_width x texture_height
+    // conversion viewport (bottom-left origin): truncating it gives the exact pixel with integer-only math on every
+    // GPU (#42). y is flipped so that row 0 is the first line of the input buffer.
+    ivec2 coords = ivec2(int(gl_FragCoord.x), texture_height - 1 - int(gl_FragCoord.y));
 
-    ivec2 texture_size = textureSize(input_texture, 0);
-    ivec2 coords = ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height));
+    // A pixel pair is 4 samples of 10 bits packed MSB first (Cb, Y of the even pixel, Cr, Y of the odd pixel):
+    // bytes 5 * pair to 5 * pair + 4 of the line, which lie in two consecutive texels.
+    int first_byte = (coords.x / 2) * 5;
+    uint word0 = read_be_word(first_byte / 4, coords.y);
+    uint word1 = read_be_word(first_byte / 4 + 1, coords.y);
+    // Align the pair on bit 31: its first 32 bits in high, its last 8 bits in the top byte of low.
+    // (A shift by 32 is undefined in GLSL, hence the shift == 0 case.)
+    int shift = (first_byte % 4) * 8;
+    uint high = (shift == 0) ? word0 : ((word0 << shift) | (word1 >> (32 - shift)));
+    uint low = word1 << shift;
 
-    vec4 uyvy;
-    vec4 uyvy2;
+    uint y_code = ((coords.x & 1) == 0) ? ((high >> 12) & 0x3FFu) : (((high & 0x3u) << 8) | (low >> 24));
 
-    float pixel_index = coords.x + coords.y * texture_size.x;
     vec4 yuvk;
+    yuvk.x = float(y_code) / 1023.0;
+    yuvk.y = float(high >> 22) / 1023.0;
+    yuvk.z = float((high >> 2) & 0x3FFu) / 1023.0;
     yuvk.w = 1.0;
-
-    if(mod(pixel_index, 8.0) < 1.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        yuvk.x = ((mod(uyvy.y * 255.0,64) * 16) + (int(uyvy.z * 255.0 / 16.0))) / 1023.0;
-        yuvk.y = ((uyvy.x * 255.0 * 4.0) + (int(uyvy.y * 255.0 / 64.0))) / 1023.0;
-        yuvk.z = ((mod(uyvy.z * 255.0,16.0) * 64.0) + (int(uyvy.w * 255.0 / 4.0))) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 2.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        yuvk.y = ((uyvy.x * 255.0 * 4.0) + (uyvy.y * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy.z * 255.0,16.0) * 64.0) + (uyvy.w * 255.0 / 4.0)) / 1023.0;
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) + 1, coords.y), 0);
-        yuvk.x = (uyvy2.x * 255.0 + (mod(uyvy.w * 255.0,4.0) * 256.0)) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 3.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        yuvk.x = ((mod(uyvy.z * 255.0, 64.0) * 16.0) + (uyvy.w * 255.0 / 16.0)) / 1023.0;
-        yuvk.y = ((uyvy.y * 255.0 * 4.0) + (uyvy.z * 255.0 / 64.0)) / 1023.0;
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) + 1, coords.y), 0);
-        yuvk.z = ((mod(uyvy.w * 255.0,16.0) * 64.0) + (uyvy2.x * 255.0 / 4.0)) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 4.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) + 1, coords.y), 0);
-        yuvk.x = (uyvy.y * 255.0 + (mod(uyvy.x * 255.0,4.0) * 256.0)) / 1023.0;
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        yuvk.y = ((uyvy2.y * 255.0 * 4.0) + (uyvy2.z * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy2.w * 255.0,16.0) * 64.0) + (uyvy.x * 255.0 / 4.0)) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 5.0)
-    {
-        uyvy = texelFetch(input_texture,  ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) + 1 , coords.y), 0);
-        yuvk.x = ((mod(uyvy.w * 255.0, 64.0) * 16.0) + (uyvy2.x * 255.0 / 16.0)) / 1023.0;
-        yuvk.y = ((uyvy.z * 255.0 * 4.0) + (uyvy.w * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy2.x * 255.0,16.0) * 64.0) + (uyvy2.y * 255.0 / 4.0)) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 6.0)
-    {
-        uyvy = texelFetch(input_texture,  ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        yuvk.x = (uyvy.z * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-        uyvy2 = texelFetch(input_texture,  ivec2(int(coords.x * 5.0 / 8.0) - 1 , coords.y), 0);
-        yuvk.y = ((uyvy2.z * 255.0 * 4.0) + (uyvy2.w * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy.x * 255.0,16.0) * 64.0) + (uyvy.y * 255.0 / 4.0)) / 1023.0;
-    }
-    else if (mod(pixel_index, 8.0) < 7.0)
-    {
-        uyvy = texelFetch(input_texture,  ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) + 1 , coords.y), 0);
-        yuvk.x = ((mod(uyvy2.x * 255.0, 64.0) * 16.0) + (uyvy2.y * 255.0 / 16.0)) / 1023.0;
-        yuvk.y = ((uyvy.w * 255.0 * 4.0) + (uyvy2.x * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy2.y * 255.0,16.0) * 64.0) + (uyvy2.z * 255.0 / 4.0)) / 1023.0;
-    }
-    else
-    {
-        uyvy = texelFetch(input_texture,  ivec2(int(coords.x * 5.0 / 8.0), coords.y), 0);
-        uyvy2 = texelFetch(input_texture, ivec2(int(coords.x * 5.0 / 8.0) - 1, coords.y), 0);
-        yuvk.x = (uyvy.w * 255.0 + (mod(uyvy.z * 255.0,4.0) * 256.0)) / 1023.0;
-        yuvk.y = ((uyvy2.w * 255.0 * 4.0) + (uyvy.x * 255.0 / 64.0)) / 1023.0;
-        yuvk.z = ((mod(uyvy.y * 255.0,16.0) * 64.0) + (uyvy.z * 255.0 / 4.0)) / 1023.0;
-    }
 
     output_color = yuv2rgba(yuvk);
 }

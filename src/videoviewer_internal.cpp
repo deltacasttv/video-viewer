@@ -681,10 +681,11 @@ void VideoViewer_Internal::render()
     // Draw the triangle
     GL_CHECK(glDrawElements, GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid*)0);
 
-    // Copy the rendered texture to another texture
+    // The conversion was rendered directly into m_texture_to_render (colour attachment of
+    // m_conversion_framebuffer): bind it for the render pass. Do not copy it onto itself with
+    // glCopyTexImage2D: copying into a texture level that is the read buffer of the read
+    // framebuffer is undefined behaviour in OpenGL (#42).
     GL_CHECK(glBindTexture, GL_TEXTURE_2D, m_texture_to_render);
-    GL_CHECK(glCopyTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, m_texture_width, m_texture_height,
-             0);
 
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);

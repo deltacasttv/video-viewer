@@ -36,7 +36,10 @@ vec4 yuv2rgba(vec4 yuvk)
 }
 
 void main() {
-    ivec2 coords = ivec2(round(texture_coordinates.x * (texture_width - 1)), round(texture_coordinates.y * (texture_height - 1)));
+    // gl_FragCoord.xy is the centre (x + 0.5, y + 0.5) of the output pixel in the texture_width x texture_height
+    // conversion viewport (bottom-left origin): truncating it gives the exact pixel with integer-only math on every
+    // GPU (#42). y is flipped so that row 0 is the first line of the input buffer.
+    ivec2 coords = ivec2(int(gl_FragCoord.x), texture_height - 1 - int(gl_FragCoord.y));
 
     float y = texelFetch(input_texture, coords, 0).r;
 
