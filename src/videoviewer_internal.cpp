@@ -62,8 +62,9 @@ const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0
 };
 
-static uint32_t g_window_width = 0;
-static uint32_t g_window_height = 0;
+// glfwTerminate destroys all the windows: GLFW is only terminated when the last viewer using it is destroyed
+static std::mutex g_glfw_users_mutex;
+static int g_glfw_users = 0;
 
 VideoViewer_Internal::VideoViewer_Internal()
 {
@@ -71,7 +72,18 @@ VideoViewer_Internal::VideoViewer_Internal()
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
-   glfwTerminate();
+   if (m_render_thread.joinable())
+   {
+      stop();
+      m_render_thread.join();
+   }
+
+   if (m_glfw_user)
+   {
+      std::lock_guard<std::mutex> guard(g_glfw_users_mutex);
+      if (--g_glfw_users == 0)
+         glfwTerminate();
+   }
 }
 
 void VideoViewer_Internal::PrintGLError(GLenum error, const char* stmt, const char* fname, int line)
@@ -128,9 +140,11 @@ void VideoViewer_Internal::delete_framebuffers()
 
 void VideoViewer_Internal::framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-   g_window_width = width;
-   g_window_height = height;
-   GL_CHECK(glViewport, 0, 0, g_window_width, g_window_height);
+   // Called while processing the events, possibly not in the rendering thread (whose context is not current here):
+   // only store the size of this window, render() applies it
+   auto* viewer = static_cast<VideoViewer_Internal*>(glfwGetWindowUserPointer(window));
+   viewer->m_window_width = width;
+   viewer->m_window_height = height;
 }
 
 bool VideoViewer_Internal::create_window(int width, int height, const char* title)
@@ -160,6 +174,13 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
    if (!GLFW_CHECK_OUTPUT(glfwInit).value)
      return false;
 
+   if (!m_glfw_user)
+   {
+      std::lock_guard<std::mutex> users_guard(g_glfw_users_mutex);
+      ++g_glfw_users;
+      m_glfw_user = true;
+   }
+
    GLFW_CHECK(glfwWindowHint, GLFW_CONTEXT_VERSION_MAJOR, 4);
    // Apple supports only OpenGL 4.1 maximum
    GLFW_CHECK(glfwWindowHint, GLFW_CONTEXT_VERSION_MINOR, 1);
@@ -170,19 +191,23 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
       GLFW_CHECK(glfwWindowHint, GLFW_VISIBLE, false);
 
    m_window = GLFW_CHECK_OUTPUT(glfwCreateWindow, width, height, title, nullptr, nullptr).value;
-   g_window_width = width;
-   g_window_height = height;
-   m_window_width = width;
-   m_window_height = height;
 
    if (!m_window)
      return false;
+
+   // The framebuffer is bigger than the window on high DPI screens (macOS Retina)
+   int framebuffer_width = width;
+   int framebuffer_height = height;
+   GLFW_CHECK(glfwGetFramebufferSize, m_window, &framebuffer_width, &framebuffer_height);
+   m_window_width = framebuffer_width;
+   m_window_height = framebuffer_height;
 
    GLFW_CHECK(glfwMakeContextCurrent, m_window);
 
    if (!gladLoadGL(glfwGetProcAddress))
      return false;
 
+   GLFW_CHECK(glfwSetWindowUserPointer, m_window, this);
    GLFW_CHECK(glfwSetFramebufferSizeCallback, m_window, VideoViewer_Internal::framebuffer_size_callback);
 
    return true;
@@ -381,6 +406,14 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
 
 bool VideoViewer_Internal::release()
 {
+   if (m_render_thread.joinable())
+   {
+      stop();
+      m_render_thread.join();
+      // The render thread gave the context back, it is needed to delete the OpenGL objects
+      GLFW_CHECK(glfwMakeContextCurrent, m_window);
+   }
+
    std::lock_guard<std::mutex> guard(m_rendering_mutex);
 
    if (m_rendering_active)
@@ -513,6 +546,7 @@ bool Deltacast::VideoViewer_Internal::destroy_window()
    if(m_window){
       release();
       GLFW_CHECK(glfwDestroyWindow, m_window);
+      m_window = nullptr;
       return true;
    }
 
@@ -559,6 +593,44 @@ void VideoViewer_Internal::render_iteration()
    GLFW_CHECK(glfwSwapBuffers, m_window);
 }
 
+bool VideoViewer_Internal::start_render_thread(int frame_rate_in_ms)
+{
+   if (!m_window || m_render_thread.joinable())
+      return false;
+
+   // A context can only be current in one thread at a time: hand it over to the render thread
+   GLFW_CHECK(glfwMakeContextCurrent, nullptr);
+   m_stop = false;
+   m_rendering_active = true;
+
+   m_render_thread = std::thread([this, frame_rate_in_ms]()
+   {
+      GLFW_CHECK(glfwMakeContextCurrent, m_window);
+      const auto frame_rate = std::chrono::milliseconds(frame_rate_in_ms);
+
+      // Only the GLFW functions allowed outside of the main thread: the events are processed by poll_events
+      while (!GLFW_CHECK_OUTPUT(glfwWindowShouldClose, m_window).value && !m_stop)
+      {
+         auto start_time = std::chrono::high_resolution_clock::now();
+         render();
+         GLFW_CHECK(glfwSwapBuffers, m_window);
+         auto elapsed_time = std::chrono::high_resolution_clock::now() - start_time;
+         auto remaining = frame_rate - elapsed_time;
+         if (remaining > std::chrono::milliseconds::zero())
+            std::this_thread::sleep_for(remaining);
+      }
+
+      GLFW_CHECK(glfwMakeContextCurrent, nullptr);
+   });
+
+   return true;
+}
+
+void VideoViewer_Internal::poll_events()
+{
+   GLFW_CHECK(glfwPollEvents);
+}
+
 void VideoViewer_Internal::stop()
 {
    m_stop = true;
@@ -600,8 +672,8 @@ void VideoViewer_Internal::unlock_data()
 
 void VideoViewer_Internal::render()
 {
-    m_window_width = g_window_width;
-    m_window_height = g_window_height;
+    const uint32_t window_width = m_window_width;
+    const uint32_t window_height = m_window_height;
    // Bind the framebuffer for offscreen rendering
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, m_conversion_framebuffer);
     GL_CHECK(glViewport, 0, 0, m_texture_width, m_texture_height);
@@ -651,7 +723,7 @@ void VideoViewer_Internal::render()
 
     // Unbind the framebuffer
     GL_CHECK(glBindFramebuffer, GL_FRAMEBUFFER, 0);
-    GL_CHECK(glViewport, 0, 0, m_window_width, m_window_height);
+    GL_CHECK(glViewport, 0, 0, window_width, window_height);
     GL_CHECK(glBindVertexArray, m_render_vertex_array);
 
     // Use the render shader
