@@ -62,6 +62,16 @@ void Deltacast::VideoViewer::render_iteration()
    gl_video_viewer->render_iteration();
 }
 
+bool Deltacast::VideoViewer::start_render_thread(int frame_rate_in_ms)
+{
+   return gl_video_viewer->start_render_thread(frame_rate_in_ms);
+}
+
+void Deltacast::VideoViewer::poll_events()
+{
+   VideoViewer_Internal::poll_events();
+}
+
 void Deltacast::VideoViewer::start()
 {
    gl_video_viewer->set_rendering_active(true);

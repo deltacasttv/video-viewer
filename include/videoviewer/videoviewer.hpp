@@ -112,6 +112,25 @@ namespace Deltacast
       void render_iteration();
 
       /*!
+      * @brief Starts rendering in a thread owned by the viewer, until stop or release is called or the window is closed
+      *
+      * To display several windows at the same time, or when the thread that called init must stay available. Only the
+      * rendering happens in the new thread: the thread that called init keeps handling the window, it must call
+      * poll_events (and process_escape_key) regularly, then release. On macOS, it must be the main thread, the only one
+      * allowed to create windows and process their events.
+      *
+      * @returns the status of its execution (true = no error or false = error)
+      */
+      bool start_render_thread(int frame_rate_in_ms);
+
+      /*!
+      * @brief Processes the events of all the windows (moving, resizing, closing, keys...)
+      *
+      * Note: must be called regularly in the context of the usage of start_render_thread, from the thread that called init
+      */
+      static void poll_events();
+
+      /*!
       * @brief Start function that init internal variables of the library
       *
       * Note: must be only called in the context of the usage of render_iteration function

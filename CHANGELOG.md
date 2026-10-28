@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.0]
+
+### Added
+- `start_render_thread` and `poll_events` to render several windows at the same time, each in its own thread, while the window events are processed by the thread that created them (the main thread, mandatory on macOS)
+
+### Fixed
+- Several viewers in the same process shared the same window (`VideoViewer_Internal` was a global variable)
+- Destroying a viewer closed the windows of all the other viewers (GLFW was terminated by every viewer)
+- Resizing a window changed the rendering size of all the other windows
+- Only a quarter of the window was rendered on high DPI screens (macOS Retina) until the window was resized
+
 ## [2.0.0]
 
 ### Added
