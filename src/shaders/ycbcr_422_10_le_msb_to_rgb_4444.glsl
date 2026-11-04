@@ -6,6 +6,13 @@ out vec4 output_color;
 uniform int texture_width;
 uniform int texture_height;
 
+// One texel = one little-endian 32-bit word (its 4 bytes in .rgba), one texture row = one video line.
+// Every line starts on a new group of 6 pixels packed in 4 words (v210 order):
+//   word 0 = Cb0 | Y0 << 10 | Cr0 << 20
+//   word 1 = Y1  | Cb2 << 10 | Y2 << 20
+//   word 2 = Cr2 | Y3 << 10 | Cb4 << 20
+//   word 3 = Y4  | Cr4 << 10 | Y5 << 20
+// Line padding (unused samples of the last group of a line, optional line alignment) is never read.
 uniform sampler2D input_texture;
 
 uniform bool bt_709;
@@ -34,62 +41,27 @@ vec4 yuv2rgba(vec4 yuvk)
     return rgba;
 }
 
-void main() {
-    int width = textureSize(input_texture, 0).x / 2;
-    ivec2 coords = ivec2(round(texture_coordinates.x * texture_width), round(texture_coordinates.y * texture_height));
-    vec4 uyvy;
-    float PxlIdx = coords.x + coords.y * width;
-    vec4 yuvk;
-    yuvk.w = 1.0;
-    float x_threshold = mod(float(coords.y),3.0) * width;
+// Sample 'index' of the 6-pixel group starting at texel 'group_texel' of line 'line', normalized to [0,1].
+// Samples are numbered in memory order: Cb0 Y0 Cr0 Y1 Cb2 Y2 Cr2 Y3 Cb4 Y4 Cr4 Y5 (3 per word, LSB first).
+float group_sample(int group_texel, int index, int line)
+{
+    uvec4 bytes = uvec4(round(texelFetch(input_texture, ivec2(group_texel + index / 3, line), 0) * 255.0));
+    uint word = bytes.r | (bytes.g << 8u) | (bytes.b << 16u) | (bytes.a << 24u);
+    return float((word >> uint(10 * (index % 3))) & 0x3FFu) / 1023.0;
+}
 
-    if (mod(PxlIdx, 6.0) < 1.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3), 0);
-        yuvk.x = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-        yuvk.y = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-        yuvk.z = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-    }
-    else if (mod(PxlIdx, 6.0) < 2.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3.0), 0);
-        yuvk.y = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-        yuvk.z = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0) + 1, coords.y / 3.0), 0);
-        yuvk.x = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-    }
-    else if (mod(PxlIdx, 6.0) < 3.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3.0), 0);
-        yuvk.x = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-        yuvk.y = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0)+1, coords.y / 3.0), 0);
-        yuvk.z = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-    }
-    else if (mod(PxlIdx, 6.0) < 4.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3.0), 0);
-        yuvk.x = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-        yuvk.z = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0)-1, coords.y / 3.0), 0);
-        yuvk.y = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-    }
-    else if (mod(PxlIdx, 6.0) < 5.0)
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3.0), 0);
-        yuvk.y = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0)+1 , coords.y / 3.0), 0);
-        yuvk.x = (uyvy.x * 255.0 + (mod(uyvy.y * 255.0,4.0) * 256.0)) / 1023.0;
-        yuvk.z = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-    }
-    else
-    {
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0), coords.y / 3.0), 0);
-        yuvk.x = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-        yuvk.z = ((uyvy.y * 255.0 / 4.0) + (mod(uyvy.z * 255.0,16.0) * 64.0)) / 1023.0;
-        uyvy = texelFetch(input_texture, ivec2(int((coords.x + x_threshold)*2.0/3.0)-1, coords.y / 3.0), 0);
-        yuvk.y = ((uyvy.z * 255.0 / 16.0) + (mod(uyvy.w * 255.0,64.0) * 16.0)) / 1023.0;
-    }
+void main() {
+    ivec2 coords = ivec2(floor(texture_coordinates * vec2(texture_width, texture_height)));
+
+    int group_texel = (coords.x / 6) * 4;
+    int phase = coords.x % 6;
+    int cb_index = (phase / 2) * 4; // Cb of the pixel pair, Cr follows 2 samples later
+
+    vec4 yuvk;
+    yuvk.x = group_sample(group_texel, 2 * phase + 1, coords.y);
+    yuvk.y = group_sample(group_texel, cb_index, coords.y);
+    yuvk.z = group_sample(group_texel, cb_index + 2, coords.y);
+    yuvk.w = 1.0;
 
     output_color = yuv2rgba(yuvk);
 }

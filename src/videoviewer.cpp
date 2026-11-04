@@ -47,6 +47,11 @@ bool Deltacast::VideoViewer::init(int window_width, int window_height, const cha
     return false;
 }
 
+bool Deltacast::VideoViewer::set_line_alignment(uint32_t line_alignment)
+{
+    return gl_video_viewer.set_line_alignment(line_alignment);
+}
+
 bool Deltacast::VideoViewer::release()
 {
     bool result_release = gl_video_viewer.release();

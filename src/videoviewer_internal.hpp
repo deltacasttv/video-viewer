@@ -41,6 +41,7 @@ namespace Deltacast
                            const int ypos);
         bool init(int texture_width, int texture_height,
                   Deltacast::VideoViewer::InputFormat input_format);
+        bool set_line_alignment(uint32_t line_alignment);
         bool release();
         bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = []() {});
         void render_iteration();
@@ -98,6 +99,8 @@ namespace Deltacast
         uint32_t    m_internal_uv_texture_height{ 0 };
         uint16_t    m_internal_uv_texture_pixel_format{ GL_RG8 };
         uint16_t    m_internal_uv_texture_format{ GL_RG };
+        uint32_t    m_line_alignment{ 0 };  // see set_line_alignment(): 0 = lines only padded to a
+                                            // whole 6-pixel group in ycbcr_422_10_le_msb
 
         std::mutex                          m_rendering_mutex;
         Deltacast::VideoViewer::InputFormat m_input_format{
