@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 Deltacast::VideoViewer::VideoViewer() : gl_video_viewer(std::make_unique<VideoViewer_Internal>()) {}
 Deltacast::VideoViewer::~VideoViewer() {}
