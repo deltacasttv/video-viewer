@@ -36,20 +36,22 @@ namespace Deltacast
         VideoViewer_Internal();
         ~VideoViewer_Internal();
 
-      bool create_window(int width, int height, const char* title);
-      bool create_window(int width, int height, const char* title, const int xpos, const int ypos);
-      bool init(int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format);
-      bool set_line_alignment(uint32_t line_alignment);
-      bool release();
-      bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = [](){});
-      void render_iteration();
-      void stop();
-      bool lock_data(uint8_t** data, uint64_t* size);
-      void unlock_data();
-      bool window_request_close();
-      bool window_set_title(const char* title);
-      bool destroy_window();
-      void process_escape_key();
+        bool create_window(int width, int height, const char* title);
+        bool create_window(int width, int height, const char* title, const int xpos,
+                           const int ypos);
+        bool init(int texture_width, int texture_height,
+                  Deltacast::VideoViewer::InputFormat input_format);
+        bool set_line_alignment(uint32_t line_alignment);
+        bool release();
+        bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = []() {});
+        void render_iteration();
+        void stop();
+        bool lock_data(uint8_t** data, uint64_t* size);
+        void unlock_data();
+        bool window_request_close();
+        bool window_set_title(const char* title);
+        bool destroy_window();
+        void process_escape_key();
 
         void set_rendering_active(bool rendering_active) { m_rendering_active = rendering_active; }
         bool is_rendering_active() { return m_rendering_active; }
@@ -73,31 +75,32 @@ namespace Deltacast
         static void PrintGLFWError(int code, const char* description, const char* stmt,
                                    const char* fname, int line);
 
-      GLFWwindow* m_window{nullptr};
-      GLuint m_texture_from_buffer{0};
-      GLuint m_texture_uv_buffer{0}; // UV texture for semi-planar format
-      GLuint m_texture_to_render{0};
-      GLuint m_conversion_framebuffer{0};
-      GLuint m_conversion_vertex_array{0};
-      GLuint m_render_vertex_array{0};
-      GLuint m_index_buffer_object{0};
-      GLuint m_vertex_buffer_object{0};
-      uint32_t m_window_width{0};
-      uint32_t m_window_height{0};
-      uint32_t m_texture_width{0};
-      uint32_t m_texture_height{0};
-      uint16_t m_internal_pixel_format{GL_RGBA8};
-      uint16_t m_internal_pixel_type{GL_UNSIGNED_BYTE};
-      uint32_t m_internal_texture_width{0};
-      uint32_t m_internal_texture_height{0};
-      uint16_t m_internal_texture_format{GL_RGBA};
-      bool     m_is_semi_planar{false};
-      uint64_t m_uv_offset{0};
-      uint32_t m_internal_uv_texture_width{0};
-      uint32_t m_internal_uv_texture_height{0};
-      uint16_t m_internal_uv_texture_pixel_format{GL_RG8};
-      uint16_t m_internal_uv_texture_format{GL_RG};
-      uint32_t m_line_alignment{0}; // see set_line_alignment(): 0 = lines only padded to a whole 6-pixel group in ycbcr_422_10_le_msb
+        GLFWwindow* m_window{ nullptr };
+        GLuint      m_texture_from_buffer{ 0 };
+        GLuint      m_texture_uv_buffer{ 0 };  // UV texture for semi-planar format
+        GLuint      m_texture_to_render{ 0 };
+        GLuint      m_conversion_framebuffer{ 0 };
+        GLuint      m_conversion_vertex_array{ 0 };
+        GLuint      m_render_vertex_array{ 0 };
+        GLuint      m_index_buffer_object{ 0 };
+        GLuint      m_vertex_buffer_object{ 0 };
+        uint32_t    m_window_width{ 0 };
+        uint32_t    m_window_height{ 0 };
+        uint32_t    m_texture_width{ 0 };
+        uint32_t    m_texture_height{ 0 };
+        uint16_t    m_internal_pixel_format{ GL_RGBA8 };
+        uint16_t    m_internal_pixel_type{ GL_UNSIGNED_BYTE };
+        uint32_t    m_internal_texture_width{ 0 };
+        uint32_t    m_internal_texture_height{ 0 };
+        uint16_t    m_internal_texture_format{ GL_RGBA };
+        bool        m_is_semi_planar{ false };
+        uint64_t    m_uv_offset{ 0 };
+        uint32_t    m_internal_uv_texture_width{ 0 };
+        uint32_t    m_internal_uv_texture_height{ 0 };
+        uint16_t    m_internal_uv_texture_pixel_format{ GL_RG8 };
+        uint16_t    m_internal_uv_texture_format{ GL_RG };
+        uint32_t    m_line_alignment{ 0 };  // see set_line_alignment(): 0 = lines only padded to a
+                                            // whole 6-pixel group in ycbcr_422_10_le_msb
 
         std::mutex                          m_rendering_mutex;
         Deltacast::VideoViewer::InputFormat m_input_format{

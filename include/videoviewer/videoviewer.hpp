@@ -81,31 +81,36 @@ namespace Deltacast
         bool init(int window_width, int window_height, const char* window_title, int texture_width,
                   int texture_height, InputFormat input_format);
 
-      /*!
-      * @brief Initialization function that creates opengl window and textures at a given position
-      *
-      * Limitation: this function should be called in the same thread that calls render_loop or render_iteration to allow window events to be processed
-      *
-      * @returns the status of its execution (true = no error or false = error)
-      */
-      bool init(int window_width, int window_height, const char* window_title, int texture_width, int texture_height, InputFormat input_format, int xpos, int ypos);
+        /*!
+         * @brief Initialization function that creates opengl window and textures at a given
+         * position
+         *
+         * Limitation: this function should be called in the same thread that calls render_loop or
+         * render_iteration to allow window events to be processed
+         *
+         * @returns the status of its execution (true = no error or false = error)
+         */
+        bool init(int window_width, int window_height, const char* window_title, int texture_width,
+                  int texture_height, InputFormat input_format, int xpos, int ypos);
 
-      /*!
-      * @brief Sets the line alignment of the input buffer, for buffers whose lines are padded
-      *
-      * Only InputFormat::ycbcr_422_10_le_msb uses it for now. In this format, 6 pixels are packed in 16 bytes
-      * (4 little-endian 32-bit words, v210 order) and every line starts on a new group of 6 pixels, so a line takes
-      * ceil(width / 6) * 16 bytes. With a line alignment, each line is then padded up to a multiple of line_alignment
-      * bytes: use 128 for the standard v210 layout (ceil(width / 48) * 128 bytes per line), e.g. when the source pads
-      * every line to 128 bytes. The size returned by lock_data() includes this padding.
-      *
-      * Must be called before init() to be taken into account, and stays in effect for the next init() calls.
-      * By default, the line alignment is 0 (no padding beyond the last group of 6 pixels of a line).
-      *
-      * @returns the status of its execution (true = no error or false = error: line_alignment is not 0 or a multiple of 16)
-      */
-      bool set_line_alignment(uint32_t line_alignment);
-
+        /*!
+         * @brief Sets the line alignment of the input buffer, for buffers whose lines are padded
+         *
+         * Only InputFormat::ycbcr_422_10_le_msb uses it for now. In this format, 6 pixels are
+         * packed in 16 bytes (4 little-endian 32-bit words, v210 order) and every line starts on a
+         * new group of 6 pixels, so a line takes ceil(width / 6) * 16 bytes. With a line alignment,
+         * each line is then padded up to a multiple of line_alignment bytes: use 128 for the
+         * standard v210 layout (ceil(width / 48) * 128 bytes per line), e.g. when the source pads
+         * every line to 128 bytes. The size returned by lock_data() includes this padding.
+         *
+         * Must be called before init() to be taken into account, and stays in effect for the next
+         * init() calls. By default, the line alignment is 0 (no padding beyond the last group of 6
+         * pixels of a line).
+         *
+         * @returns the status of its execution (true = no error or false = error: line_alignment is
+         * not 0 or a multiple of 16)
+         */
+        bool set_line_alignment(uint32_t line_alignment);
 
         /*!
          * @brief Release function that destroy opengl window and textures

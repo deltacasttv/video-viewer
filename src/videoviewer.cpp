@@ -49,7 +49,7 @@ bool Deltacast::VideoViewer::init(int window_width, int window_height, const cha
 
 bool Deltacast::VideoViewer::set_line_alignment(uint32_t line_alignment)
 {
-   return gl_video_viewer.set_line_alignment(line_alignment);
+    return gl_video_viewer.set_line_alignment(line_alignment);
 }
 
 bool Deltacast::VideoViewer::release()

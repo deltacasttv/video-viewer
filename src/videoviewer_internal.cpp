@@ -88,18 +88,16 @@ static uint32_t g_window_height = 0;
 // does a width that is a multiple of 48.
 static uint64_t ycbcr_422_10_le_msb_line_stride(uint32_t width, uint32_t line_alignment)
 {
-   const uint64_t group_size = 16;
-   uint64_t line_stride = ((static_cast<uint64_t>(width) + 5) / 6) * group_size;
+    const uint64_t group_size = 16;
+    uint64_t       line_stride = ((static_cast<uint64_t>(width) + 5) / 6) * group_size;
 
-   if (line_alignment > group_size)
-      line_stride = ((line_stride + line_alignment - 1) / line_alignment) * line_alignment;
+    if (line_alignment > group_size)
+        line_stride = ((line_stride + line_alignment - 1) / line_alignment) * line_alignment;
 
-   return line_stride;
+    return line_stride;
 }
 
-VideoViewer_Internal::VideoViewer_Internal()
-{
-}
+VideoViewer_Internal::VideoViewer_Internal() {}
 
 VideoViewer_Internal::~VideoViewer_Internal()
 {
@@ -226,15 +224,16 @@ bool VideoViewer_Internal::create_window(int width, int height, const char* titl
 
 bool VideoViewer_Internal::set_line_alignment(uint32_t line_alignment)
 {
-   // 0 or a whole number of 16-byte groups, so that every line starts on a 32-bit word.
-   if ((line_alignment % 16) != 0)
-      return false;
+    // 0 or a whole number of 16-byte groups, so that every line starts on a 32-bit word.
+    if ((line_alignment % 16) != 0)
+        return false;
 
-   m_line_alignment = line_alignment;
-   return true;
+    m_line_alignment = line_alignment;
+    return true;
 }
 
-bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast::VideoViewer::InputFormat input_format)
+bool VideoViewer_Internal::init(int texture_width, int texture_height,
+                                Deltacast::VideoViewer::InputFormat input_format)
 {
     uint64_t    input_buffer_size = 0;
     const char* conversion_shader_name = "";
@@ -337,35 +336,36 @@ bool VideoViewer_Internal::init(int texture_width, int texture_height, Deltacast
             return false;
         }
 
-         m_internal_pixel_format = GL_RGBA8;
-         m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
-         m_internal_texture_height = m_texture_height;
-         m_internal_texture_format = GL_RGBA;
-         m_internal_pixel_type = GL_UNSIGNED_BYTE;
-         m_is_semi_planar = false;
-         input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
-         conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
-         m_data.resize(input_buffer_size);
-         break;
-      case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
-      {
-         // One texture row per video line, one RGBA8 texel per 32-bit word
-         const uint64_t line_stride = ycbcr_422_10_le_msb_line_stride(m_texture_width, m_line_alignment);
+        m_internal_pixel_format = GL_RGBA8;
+        m_internal_texture_width = static_cast<uint32_t>(m_texture_width * 5 / 8);
+        m_internal_texture_height = m_texture_height;
+        m_internal_texture_format = GL_RGBA;
+        m_internal_pixel_type = GL_UNSIGNED_BYTE;
+        m_is_semi_planar = false;
+        input_buffer_size = static_cast<uint64_t>((m_texture_width * m_texture_height * 5) / 2);
+        conversion_shader_name = fragment_shader_ycbcr_422_10_be_to_rgb_44444;
+        m_data.resize(input_buffer_size);
+        break;
+    case Deltacast::VideoViewer::InputFormat::ycbcr_422_10_le_msb:
+    {
+        // One texture row per video line, one RGBA8 texel per 32-bit word
+        const uint64_t line_stride = ycbcr_422_10_le_msb_line_stride(m_texture_width,
+                                                                     m_line_alignment);
 
-         m_internal_pixel_format = GL_RGBA8;
-         m_internal_texture_width = static_cast<uint32_t>(line_stride / 4);
-         m_internal_texture_height = m_texture_height;
-         m_internal_texture_format = GL_RGBA;
-         m_internal_pixel_type = GL_UNSIGNED_BYTE;
-         m_is_semi_planar = false;
-         input_buffer_size = line_stride * m_texture_height;
-         conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
-         m_data.resize(input_buffer_size);
-         break;
-      }
-      case Deltacast::VideoViewer::InputFormat::nv12:
-         if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
-         {
+        m_internal_pixel_format = GL_RGBA8;
+        m_internal_texture_width = static_cast<uint32_t>(line_stride / 4);
+        m_internal_texture_height = m_texture_height;
+        m_internal_texture_format = GL_RGBA;
+        m_internal_pixel_type = GL_UNSIGNED_BYTE;
+        m_is_semi_planar = false;
+        input_buffer_size = line_stride * m_texture_height;
+        conversion_shader_name = fragment_shader_ycbcr_422_10_le_msb_to_rgb_44444;
+        m_data.resize(input_buffer_size);
+        break;
+    }
+    case Deltacast::VideoViewer::InputFormat::nv12:
+        if ((m_texture_width % 2) != 0 || (m_texture_height % 2) != 0)
+        {
             std::cout << "Texture dimensions must be even for NV12 format" << std::endl;
             return false;
         }
