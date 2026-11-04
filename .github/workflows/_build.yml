@@ -69,6 +69,13 @@ jobs:
       - name: Install Conan
         run: pip install conan
 
+      # The glad recipe generates its sources with Jinja2 from the Python found by CMake's
+      # FindPython, which on macOS prefers the system framework Python (without Jinja2) over this
+      # one. Conan's own interpreter has Jinja2 as a dependency, so CMake is pointed to it.
+      - name: Locate Conan's Python interpreter
+        shell: bash
+        run: echo "CONAN_PYTHON=$(python -c 'import sys; print(sys.executable.replace(chr(92), "/"))')" >> "$GITHUB_ENV"
+
       - name: Detect Conan profile
         run: conan profile detect --force
 
@@ -82,11 +89,16 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: startsWith(inputs.os, 'ubuntu-')
-        run: conan install conanfile.txt --build missing -s build_type=Release -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+        run: >-
+          conan install conanfile.txt --build missing -s build_type=Release
+          -c "tools.cmake.cmaketoolchain:extra_variables={'Python_EXECUTABLE': '${{ env.CONAN_PYTHON }}'}"
+          -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 
       - name: Install dependencies (non-Linux)
         if: ${{ !startsWith(inputs.os, 'ubuntu-') }}
-        run: conan install conanfile.txt --build missing -s build_type=Release
+        run: >-
+          conan install conanfile.txt --build missing -s build_type=Release
+          -c "tools.cmake.cmaketoolchain:extra_variables={'Python_EXECUTABLE': '${{ env.CONAN_PYTHON }}'}"
 
       - name: Configure
         run: cmake --preset ${{ startsWith(inputs.os, 'windows-') && 'conan-default' || 'conan-release' }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
