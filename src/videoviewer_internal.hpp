@@ -21,11 +21,13 @@
 #define GLFW_INCLUDE_NONE  // To prevent GLFW from including the OpenGL headers, since we are using
                            // GLAD
 #include <GLFW/glfw3.h>    // Include GLFW only - no OpenGL stuff
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <glad/gl.h>  // glad loads OpenGL function
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace Deltacast
@@ -36,21 +38,23 @@ namespace Deltacast
         VideoViewer_Internal();
         ~VideoViewer_Internal();
 
-        bool create_window(int width, int height, const char* title);
-        bool create_window(int width, int height, const char* title, const int xpos,
-                           const int ypos);
-        bool init(int texture_width, int texture_height,
-                  Deltacast::VideoViewer::InputFormat input_format);
-        bool release();
-        bool render_loop(int frame_rate_in_ms, std::function<void()> sync_func = []() {});
-        void render_iteration();
-        void stop();
-        bool lock_data(uint8_t** data, uint64_t* size);
-        void unlock_data();
-        bool window_request_close();
-        bool window_set_title(const char* title);
-        bool destroy_window();
-        void process_escape_key();
+        bool        create_window(int width, int height, const char* title);
+        bool        create_window(int width, int height, const char* title, const int xpos,
+                                  const int ypos);
+        bool        init(int texture_width, int texture_height,
+                         Deltacast::VideoViewer::InputFormat input_format);
+        bool        release();
+        bool        render_loop(int frame_rate_in_ms, std::function<void()> sync_func = []() {});
+        void        render_iteration();
+        bool        start_render_thread(int frame_rate_in_ms);
+        static void poll_events();
+        void        stop();
+        bool        lock_data(uint8_t** data, uint64_t* size);
+        void        unlock_data();
+        bool        window_request_close();
+        bool        window_set_title(const char* title);
+        bool        destroy_window();
+        void        process_escape_key();
 
         void set_rendering_active(bool rendering_active) { m_rendering_active = rendering_active; }
         bool is_rendering_active() { return m_rendering_active; }
@@ -83,28 +87,34 @@ namespace Deltacast
         GLuint      m_render_vertex_array{ 0 };
         GLuint      m_index_buffer_object{ 0 };
         GLuint      m_vertex_buffer_object{ 0 };
-        uint32_t    m_window_width{ 0 };
-        uint32_t    m_window_height{ 0 };
-        uint32_t    m_texture_width{ 0 };
-        uint32_t    m_texture_height{ 0 };
-        uint16_t    m_internal_pixel_format{ GL_RGBA8 };
-        uint16_t    m_internal_pixel_type{ GL_UNSIGNED_BYTE };
-        uint32_t    m_internal_texture_width{ 0 };
-        uint32_t    m_internal_texture_height{ 0 };
-        uint16_t    m_internal_texture_format{ GL_RGBA };
-        bool        m_is_semi_planar{ false };
-        uint64_t    m_uv_offset{ 0 };
-        uint32_t    m_internal_uv_texture_width{ 0 };
-        uint32_t    m_internal_uv_texture_height{ 0 };
-        uint16_t    m_internal_uv_texture_pixel_format{ GL_RG8 };
-        uint16_t    m_internal_uv_texture_format{ GL_RG };
+        // Framebuffer size: updated while processing the window events, possibly not in the
+        // rendering thread
+        std::atomic<uint32_t> m_window_width{ 0 };
+        std::atomic<uint32_t> m_window_height{ 0 };
+        uint32_t              m_texture_width{ 0 };
+        uint32_t              m_texture_height{ 0 };
+        uint16_t              m_internal_pixel_format{ GL_RGBA8 };
+        uint16_t              m_internal_pixel_type{ GL_UNSIGNED_BYTE };
+        uint32_t              m_internal_texture_width{ 0 };
+        uint32_t              m_internal_texture_height{ 0 };
+        uint16_t              m_internal_texture_format{ GL_RGBA };
+        bool                  m_is_semi_planar{ false };
+        uint64_t              m_uv_offset{ 0 };
+        uint32_t              m_internal_uv_texture_width{ 0 };
+        uint32_t              m_internal_uv_texture_height{ 0 };
+        uint16_t              m_internal_uv_texture_pixel_format{ GL_RG8 };
+        uint16_t              m_internal_uv_texture_format{ GL_RG };
 
         std::mutex                          m_rendering_mutex;
         Deltacast::VideoViewer::InputFormat m_input_format{
             Deltacast::VideoViewer::InputFormat::nb_input_format
         };
-        bool                 m_stop{ false };
-        bool                 m_rendering_active{ false };
+        std::atomic<bool> m_stop{ false };
+        std::atomic<bool> m_rendering_active{ false };
+        std::thread       m_render_thread;
+        // Whether this viewer counts in the users of the GLFW library, see create_window and the
+        // destructor
+        bool                 m_glfw_user{ false };
         std::mutex           m_data_mutex;
         std::vector<uint8_t> m_data;
 
