@@ -14,8 +14,8 @@
  */
 
 #pragma once
-#include <glad/gl.h>
 #include <exception>
+#include <glad/gl.h>
 #include <string>
 
 class Shader

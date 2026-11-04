@@ -7,7 +7,15 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# clang-format and clangd versions below must stay aligned with each other and with local tooling.
 jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx run --spec clang-format==22.1.3 clang-format --dry-run --Werror $(git ls-files -- '*.c' '*.cpp' '*.h' '*.hpp')
+
   build:
     name: ${{ matrix.os }} / Release
     strategy:
@@ -21,3 +29,4 @@ jobs:
       build_testing: true
       build_examples: true
       run_tests: true
+      clangd_version: "22.1.3"

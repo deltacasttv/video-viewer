@@ -15,9 +15,12 @@
 
 #include "shader.hpp"
 
+#include <cstddef>
 #include <fstream>
+#include <glad/gl.h>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
 {

@@ -31,6 +31,11 @@ on:
         required: false
         type: boolean
         default: false
+      clangd_version:
+        description: LLVM version of clangd used to check diagnostics (Linux only, empty = skip)
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -64,6 +69,13 @@ jobs:
       - name: Install Conan
         run: pip install conan
 
+      # The glad recipe generates its sources with Jinja2 from the Python found by CMake's
+      # FindPython, which on macOS prefers the system framework Python (without Jinja2) over this
+      # one. Conan's own interpreter has Jinja2 as a dependency, so CMake is pointed to it.
+      - name: Locate Conan's Python interpreter
+        shell: bash
+        run: echo "CONAN_PYTHON=$(python -c 'import sys; print(sys.executable.replace(chr(92), "/"))')" >> "$GITHUB_ENV"
+
       - name: Detect Conan profile
         run: conan profile detect --force
 
@@ -77,14 +89,42 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: startsWith(inputs.os, 'ubuntu-')
-        run: conan install conanfile.txt --build missing -s build_type=Release -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
+        run: >-
+          conan install conanfile.txt --build missing -s build_type=Release
+          -c "tools.cmake.cmaketoolchain:extra_variables={'Python_EXECUTABLE': '${{ env.CONAN_PYTHON }}'}"
+          -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
 
       - name: Install dependencies (non-Linux)
         if: ${{ !startsWith(inputs.os, 'ubuntu-') }}
-        run: conan install conanfile.txt --build missing -s build_type=Release
+        run: >-
+          conan install conanfile.txt --build missing -s build_type=Release
+          -c "tools.cmake.cmaketoolchain:extra_variables={'Python_EXECUTABLE': '${{ env.CONAN_PYTHON }}'}"
 
       - name: Configure
         run: cmake --preset ${{ startsWith(inputs.os, 'windows-') && 'conan-default' || 'conan-release' }} -DBUILD_TESTING=${{ inputs.build_testing && 'ON' || 'OFF' }} -DBUILD_EXAMPLES=${{ inputs.build_examples && 'ON' || 'OFF' }}
+
+      # clangd/clangd does not publish every LLVM patch version, so clangd is taken from the
+      # official LLVM release to match the local version exactly.
+      - name: Install clangd ${{ inputs.clangd_version }}
+        if: inputs.clangd_version != '' && startsWith(inputs.os, 'ubuntu-')
+        run: |
+          ARCHIVE="LLVM-${{ inputs.clangd_version }}-Linux-X64"
+          mkdir -p "$RUNNER_TEMP/llvm"
+          curl -fsSL "https://github.com/llvm/llvm-project/releases/download/llvmorg-${{ inputs.clangd_version }}/${ARCHIVE}.tar.xz" \
+            | tar -xJ -C "$RUNNER_TEMP/llvm" --strip-components=1 --wildcards \
+                "${ARCHIVE}/bin/clangd" "${ARCHIVE}/lib/clang/*"
+          "$RUNNER_TEMP/llvm/bin/clangd" --version
+          pip install clangd-tidy==1.1.1
+
+      # `clangd --check` exits 0 on warnings such as unused includes; clangd-tidy fails on them.
+      - name: Check diagnostics (clangd)
+        if: inputs.clangd_version != '' && startsWith(inputs.os, 'ubuntu-')
+        run: |
+          git ls-files -z -- '*.c' '*.cpp' '*.h' '*.hpp' | xargs -0 clangd-tidy \
+            --clangd-executable "$RUNNER_TEMP/llvm/bin/clangd" \
+            -p build/Release \
+            -j "$(nproc)" \
+            --github
 
       - name: Build
         run: cmake --build --preset conan-release
